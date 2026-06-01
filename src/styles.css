@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-slate-200;
+  }
+
+  body {
+    @apply bg-surface font-sans text-slate-950 antialiased dark:bg-slate-950 dark:text-slate-100;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-white shadow-bloom dark:bg-slate-900;
+  }
+
+  .field {
+    @apply rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 dark:border-slate-700 dark:bg-slate-800;
+  }
+
+  .icon-button {
+    @apply grid size-10 place-items-center rounded-xl text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800;
+  }
+
+  .input-scrollbar {
+    scrollbar-color: rgba(255, 255, 255, 0.65) rgba(255, 255, 255, 0.12);
+    scrollbar-width: thin;
+  }
+
+  .input-scrollbar::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .input-scrollbar::-webkit-scrollbar-track {
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .input-scrollbar::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.65);
+  }
+}
