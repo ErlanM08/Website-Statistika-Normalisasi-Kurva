@@ -68,13 +68,7 @@ const defaultChartSettings: ChartSettings = {
 };
 
 const initialDark = typeof localStorage !== 'undefined' && localStorage.getItem('normalcurve-theme') === 'dark';
-const initialRawData: RawDataPoint[] = [
-  { xi: 70, fi: 3 },
-  { xi: 74, fi: 12 },
-  { xi: 78, fi: 18 },
-  { xi: 82, fi: 11 },
-  { xi: 86, fi: 6 },
-];
+const initialRawData: RawDataPoint[] = [];
 
 export const useDataStore = create<DataStore>((set, get) => ({
   dataType: 'single',
