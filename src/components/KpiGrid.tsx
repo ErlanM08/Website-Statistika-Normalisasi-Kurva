@@ -6,20 +6,34 @@ const icons = [Hash, Binary, Activity, Target, Sigma, Gauge, Ruler, BarChart3];
 
 export function KpiGrid() {
   const results = useDataStore((state) => state.results);
+  const dataType = useDataStore((state) => state.dataType);
   const cards = [
     { label: 'N', value: results ? results.n.toString() : '--', caption: 'Jumlah frekuensi total' },
     {
-      label: 'DELTA (Δ)',
-      value: results && results.delta > 0 ? formatUserInput(results.delta) : '--',
-      caption: results && results.delta > 0 ? 'Dihitung otomatis dari data' : 'Tambahkan minimal 2 data untuk menghitung delta',
-      title: results && results.delta > 0 ? 'Delta dihitung otomatis dari data' : 'Tambahkan minimal 2 data untuk menghitung delta',
+      label: 'RANGE (R)',
+      value: results ? formatCalculated(results.range) : '--',
+      caption: 'Rentang data (Xmax - Xmin)',
+      title: 'Rentang data (Xmax - Xmin)',
     },
-    { label: 'xbar Empiris', value: results ? formatCalculated(results.meanEmpiris) : '--', caption: 'Rata-rata data aktual' },
-    { label: 'xbar Teoritik', value: results ? formatCalculated(results.meanTeoritik) : '--', caption: 'Rata-rata kurva teoritis' },
-    { label: 'sigma Empiris', value: results ? formatCalculated(results.stdEmpiris) : '--', caption: 'Simpangan baku data aktual' },
-    { label: 'sigma Teoritik', value: results ? formatCalculated(results.stdTeoritik) : '--', caption: 'Simpangan baku teoritis' },
-    { label: 'Range', value: results ? formatCalculated(results.range) : '--', caption: 'Rentang data (xmax - xmin)' },
-    { label: 'Modus', value: results ? results.modus.map((value) => formatCalculated(value)).join(', ') : '--', caption: 'Nilai dengan fi tertinggi' },
+    { label: 'RATA-RATA EMPIRIS (x̄)', value: results ? formatCalculated(results.meanEmpiris) : '--', caption: 'Rata-rata data aktual' },
+    {
+      label: "HARGA RATA-RATA TEORITIK (x̄')",
+      value: results ? formatCalculated(results.meanTeoritik) : '--',
+      caption: 'Rata-rata kurva normal teoritik (interpolasi U=0)',
+    },
+    { label: 'SIMPANGAN BAKU EMPIRIS (s)', value: results ? formatCalculated(results.stdEmpiris) : '--', caption: 'Simpangan baku data aktual' },
+    {
+      label: "DEVIASI STANDAR TEORITIK (σ')",
+      value: results ? formatCalculated(results.stdTeoritik) : '--',
+      caption: "Simpangan baku kurva normal teoritik (interpolasi U=-1)",
+    },
+    {
+      label: 'DELTA / LEBAR KELAS (Δ)',
+      value: results && results.delta > 0 ? formatUserInput(results.delta) : '--',
+      caption: dataType === 'single' ? 'Jarak antar nilai data berurutan' : 'Lebar kelas interval (Batas Atas - Batas Bawah)',
+      title: results && results.delta > 0 ? undefined : 'Tambahkan minimal 2 data untuk menghitung delta',
+    },
+    { label: 'MODUS (Mo)', value: results ? results.modus.map((value) => formatCalculated(value)).join(', ') : '--', caption: 'Nilai dengan fi tertinggi' },
   ];
 
   return (
