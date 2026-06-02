@@ -42,10 +42,10 @@ const guideSections = [
     ],
   },
   {
-    title: '5. Tabel detail',
+    title: '5. Tabel Hasil Perhitungan',
     icon: Table2,
     items: [
-      'Klik Lihat Tabel Detail untuk membuka 11 kolom perhitungan Polman Bandung.',
+      'Klik Lihat Tabel Detail untuk membuka 11 kolom pada Tabel Hasil Perhitungan.',
       'Baris dengan Fi[%] = 100 otomatis memakai u = infinity dan f{x\'} = 0.',
       'Kolom data input tampil apa adanya, sedangkan hasil kalkulasi tampil 4 desimal.',
     ],

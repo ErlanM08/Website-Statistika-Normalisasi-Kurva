@@ -63,8 +63,8 @@ const tourSteps: TourStep[] = [
   },
   {
     targetId: 'table-detail',
-    title: 'Tabel Detail',
-    body: 'Bagian ini berisi tombol Lihat Tabel Detail. Gunakan untuk membuka 11 kolom perhitungan Polman Bandung.',
+    title: 'Tabel Hasil Perhitungan',
+    body: 'Bagian ini berisi tombol Lihat Tabel Detail. Gunakan untuk membuka 11 kolom pada Tabel Hasil Perhitungan.',
   },
   {
     targetId: 'formula-toggle',
