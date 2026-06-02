@@ -6,6 +6,8 @@ const icons = [Hash, Binary, Activity, Target, Sigma, Gauge, Ruler, BarChart3];
 
 export function KpiGrid() {
   const results = useDataStore((state) => state.results);
+  const dataType = useDataStore((state) => state.dataType);
+  const deltaSubtitle = dataType === 'single' ? 'Jarak antar nilai data' : 'Lebar kelas interval (BA - BB)';
   const cards = [
     { label: 'Jumlah Data', value: results ? results.n.toString() : '--', symbol: 'n', caption: 'Jumlah frekuensi total' },
     {
@@ -33,7 +35,7 @@ export function KpiGrid() {
       label: 'Delta (Δ)',
       value: results && results.delta > 0 ? formatUserInput(results.delta) : '--',
       symbol: 'Δ',
-      caption: 'Lebar kelas interval',
+      caption: deltaSubtitle,
       title: results && results.delta > 0 ? undefined : 'Tambahkan minimal 2 data untuk menghitung Delta',
     },
     { label: 'Modus', value: results ? results.modus.map((value) => formatCalculated(value)).join(', ') : '--', symbol: 'Mo', caption: 'Nilai dengan fi tertinggi' },
