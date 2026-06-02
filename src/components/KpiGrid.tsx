@@ -6,39 +6,42 @@ const icons = [Hash, Binary, Activity, Target, Sigma, Gauge, Ruler, BarChart3];
 
 export function KpiGrid() {
   const results = useDataStore((state) => state.results);
-  const dataType = useDataStore((state) => state.dataType);
   const cards = [
-    { label: 'N', value: results ? results.n.toString() : '--', caption: 'Jumlah frekuensi total' },
+    { label: 'Jumlah Data', value: results ? results.n.toString() : '--', symbol: 'n', caption: 'Jumlah frekuensi total' },
     {
-      label: 'RANGE (R)',
+      label: 'Range',
       value: results ? formatCalculated(results.range) : '--',
-      caption: 'Rentang data (Xmax - Xmin)',
-      title: 'Rentang data (Xmax - Xmin)',
+      symbol: 'R = Xmax - Xmin',
+      caption: 'Rentang data (xmax - xmin)',
+      title: 'Rentang data (xmax - xmin)',
     },
-    { label: 'RATA-RATA EMPIRIS (x̄)', value: results ? formatCalculated(results.meanEmpiris) : '--', caption: 'Rata-rata data aktual' },
+    { label: 'Rata-Rata Sample', value: results ? formatCalculated(results.meanEmpiris) : '--', symbol: 'x̄', caption: 'Rata-rata data aktual' },
     {
-      label: "HARGA RATA-RATA TEORITIK (x̄')",
+      label: 'Rata-Rata Teoritik',
       value: results ? formatCalculated(results.meanTeoritik) : '--',
-      caption: 'Rata-rata kurva normal teoritik (interpolasi U=0)',
+      symbol: "x̄'",
+      caption: 'Rata-rata kurva teoritis',
     },
-    { label: 'SIMPANGAN BAKU EMPIRIS (s)', value: results ? formatCalculated(results.stdEmpiris) : '--', caption: 'Simpangan baku data aktual' },
+    { label: 'Std Deviasi Sample', value: results ? formatCalculated(results.stdEmpiris) : '--', symbol: 's', caption: 'Simpangan baku data aktual' },
     {
-      label: "DEVIASI STANDAR TEORITIK (σ')",
+      label: 'Std Deviasi Teoritik',
       value: results ? formatCalculated(results.stdTeoritik) : '--',
-      caption: "Simpangan baku kurva normal teoritik (interpolasi U=-1)",
+      symbol: "σ'",
+      caption: 'Simpangan baku teoritis',
     },
     {
-      label: 'DELTA / LEBAR KELAS (Δ)',
+      label: 'Delta (Δ)',
       value: results && results.delta > 0 ? formatUserInput(results.delta) : '--',
-      caption: dataType === 'single' ? 'Jarak antar nilai data berurutan' : 'Lebar kelas interval (Batas Atas - Batas Bawah)',
-      title: results && results.delta > 0 ? undefined : 'Tambahkan minimal 2 data untuk menghitung delta',
+      symbol: 'Δ',
+      caption: 'Lebar kelas interval',
+      title: results && results.delta > 0 ? undefined : 'Tambahkan minimal 2 data untuk menghitung Delta',
     },
-    { label: 'MODUS (Mo)', value: results ? results.modus.map((value) => formatCalculated(value)).join(', ') : '--', caption: 'Nilai dengan fi tertinggi' },
+    { label: 'Modus', value: results ? results.modus.map((value) => formatCalculated(value)).join(', ') : '--', symbol: 'Mo', caption: 'Nilai dengan fi tertinggi' },
   ];
 
   return (
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8" data-tour-id="kpi">
-      {cards.map(({ label, value, caption, title }, index) => {
+      {cards.map(({ label, value, symbol, caption, title }, index) => {
         const Icon = icons[index];
         return (
           <article key={label} className="card flex min-h-36 flex-col p-5" title={title}>
@@ -49,7 +52,8 @@ export function KpiGrid() {
             <p className="break-words text-[clamp(1.25rem,1.4vw,1.5rem)] font-semibold leading-tight text-slate-950 dark:text-white" title={value}>
               {value}
             </p>
-            <p className="mt-auto pt-3 text-sm text-slate-500 dark:text-slate-400">{caption}</p>
+            <p className="pt-2 text-xs font-semibold italic text-slate-400 dark:text-slate-500">{symbol}</p>
+            <p className="mt-auto pt-2 text-sm text-slate-500 dark:text-slate-400">{caption}</p>
           </article>
         );
       })}

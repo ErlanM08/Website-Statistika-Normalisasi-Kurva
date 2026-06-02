@@ -42,8 +42,8 @@ function FrequencyPolygonChartComponent() {
       tension: 0.4,
     });
   }
-  addMeanLine(datasets, results.meanTeoritik, maxY, 'xbar teoritik', chartSettings.meanTeoritikColor, layers.showMeanTeoritikLine);
-  addMeanLine(datasets, results.meanEmpiris, maxY, 'xbar empiris', chartSettings.meanEmpirisColor, layers.showMeanEmpirisLine);
+  addMeanLine(datasets, results.meanTeoritik, maxY, 'Rata-Rata Teoritik', chartSettings.meanTeoritikColor, layers.showMeanTeoritikLine);
+  addMeanLine(datasets, results.meanEmpiris, maxY, 'Rata-Rata Sample', chartSettings.meanEmpirisColor, layers.showMeanEmpirisLine);
 
   return <Line data={{ datasets }} options={options('Poligon Frekuensi', chartSettings.xAxisLabel, chartSettings.yAxisLabel)} />;
 }
