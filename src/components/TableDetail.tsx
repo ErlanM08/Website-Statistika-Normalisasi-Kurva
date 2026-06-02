@@ -3,17 +3,17 @@ import { formatCalculated, formatIntegerInput, formatUserInput } from '../utils/
 import { Button } from './ui/Button';
 
 const headers = [
-  ['No.', 'Nomor urut baris perhitungan'],
-  ['Xi', 'Nilai data atau titik tengah kelas'],
-  ['fi', 'Frekuensi observasi'],
-  ['fi[%]', 'Frekuensi relatif: fi dibagi total n dikali 100%'],
-  ['Fi', 'Frekuensi kumulatif absolut sampai baris ini'],
-  ['Fi[%]', 'Frekuensi kumulatif relatif sampai baris ini'],
-  ['u', 'Nilai inverse CDF normal standar dari Fi[%]'],
-  ['u Interpolasi', 'Hasil regresi OLS: u_int = m.Xi + b'],
-  ["P{u'}", 'PDF normal standar berdasarkan u interpolasi'],
-  ["P{x'}", "PDF pada skala data asli: P{u'} dibagi sigma teoritik"],
-  ["f{x'}", "Frekuensi teoritis normal: P{x'} x delta x n"],
+  { key: 'no', label: 'No.', title: 'Nomor urut baris perhitungan' },
+  { key: 'xi', label: 'Xi', title: 'Nilai data atau titik tengah kelas' },
+  { key: 'fi', label: <span>f<sub>i</sub></span>, title: 'fi — Frekuensi observasi: jumlah data pada kelas ke-i' },
+  { key: 'fiPercent', label: <span>f<sub>i</sub>[%]</span>, title: 'fi[%] — Frekuensi relatif: persentase frekuensi tiap kelas terhadap total data. Rumus: (fi / n) × 100' },
+  { key: 'Fi', label: <span>F<sub>i</sub></span>, title: 'Fi — Frekuensi kumulatif: akumulasi frekuensi dari kelas pertama hingga kelas ke-i. Rumus: Fi = Fi-1 + fi' },
+  { key: 'FiPercent', label: <span>F<sub>i</sub>[%]</span>, title: 'Fi[%] — Frekuensi kumulatif relatif: persentase akumulasi frekuensi hingga kelas ke-i. Rumus: (Fi / n) × 100' },
+  { key: 'u', label: 'u', title: 'Nilai inverse CDF normal standar dari Fi[%]' },
+  { key: 'uInterpolasi', label: 'u Interpolasi', title: 'Hasil regresi OLS: u_int = m.Xi + b' },
+  { key: 'Pu', label: "P{u'}", title: 'PDF normal standar berdasarkan u interpolasi' },
+  { key: 'Px', label: "P{x'}", title: "PDF pada skala data asli: P{u'} dibagi sigma teoritik" },
+  { key: 'fxPrime', label: "f{x'}", title: "Frekuensi teoritis normal: P{x'} x delta x n" },
 ];
 
 export function TableDetail() {
@@ -44,10 +44,10 @@ export function TableDetail() {
       {visible ? (
         <div className="max-h-[520px] overflow-auto">
           <table className="w-full min-w-[1180px] text-left text-sm">
-            <thead className="sticky top-0 z-10 bg-[#00bfa5] text-xs font-bold uppercase text-white shadow-sm">
+            <thead className="sticky top-0 z-10 bg-[#00bfa5] text-xs font-bold text-white shadow-sm">
               <tr>
-                {headers.map(([label, title]) => (
-                  <th key={label} className="whitespace-nowrap px-4 py-3 font-bold" title={title}>
+                {headers.map(({ key, label, title }) => (
+                  <th key={key} className="whitespace-nowrap px-4 py-3 font-bold" title={title}>
                     {label}
                   </th>
                 ))}

@@ -23,7 +23,7 @@ function FrequencyDistributionChartComponent({ tableRows, n, layerControls }: Fr
 
   if (layerControls.showFiPolygon) {
     datasets.push({
-      label: 'fi — Frekuensi (buah)',
+      label: 'fi - Frekuensi (buah)',
       data: tableRows.map((row) => ({ x: row.xi, y: row.fi })),
       borderColor: chartSettings.empiricColor,
       backgroundColor: `${chartSettings.empiricColor}1A`,
@@ -36,7 +36,7 @@ function FrequencyDistributionChartComponent({ tableRows, n, layerControls }: Fr
 
   if (layerControls.showFiCumulative) {
     datasets.push({
-      label: 'Fi — Kumulatif (buah)',
+      label: 'Fi - Frekuensi kumulatif (buah)',
       data: tableRows.map((row) => ({ x: row.xi, y: row.FiAbsolute })),
       borderColor: chartSettings.cumulativeColor,
       backgroundColor: `${chartSettings.cumulativeColor}1A`,
@@ -51,7 +51,7 @@ function FrequencyDistributionChartComponent({ tableRows, n, layerControls }: Fr
   return (
     <div className="h-full">
       <div className="mb-3">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-white">Poligon Frekuensi — fi & Fi (buah)</h3>
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">Poligon Frekuensi - fi & Fi (buah)</h3>
         <p className="text-sm text-slate-500 dark:text-slate-400">Distribusi dan akumulasi frekuensi data</p>
       </div>
       <div className="h-[calc(100%-56px)]">
