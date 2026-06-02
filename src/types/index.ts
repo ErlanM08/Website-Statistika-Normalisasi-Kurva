@@ -1,18 +1,8 @@
-export type DataType = 'single' | 'grouped';
 export type ViewMode = 'compact' | 'standard' | 'full';
 
 export interface RawDataPoint {
   xi: number;
   fi: number;
-  classStart?: number;
-  classEnd?: number;
-}
-
-export interface GroupedInterval {
-  classStart: number;
-  classEnd: number;
-  midpoint: number;
-  frequency: number;
 }
 
 export interface TableRow {
@@ -52,9 +42,7 @@ export interface StatResults {
 export interface SessionData {
   version: '2.0.0';
   sessionName: string;
-  dataType: DataType;
   rawData: RawDataPoint[];
-  groupedData: GroupedInterval[];
   delta: number;
   results: StatResults | null;
   chartSettings?: ChartSettings;

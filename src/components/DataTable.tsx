@@ -2,25 +2,21 @@ import { Database, Trash2 } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useState } from 'react';
 import { useDataStore } from '../store/useDataStore';
 import { parseNumber } from '../utils/format';
-import { formatUserInput } from '../utils/formatters';
 import { HelpTooltip } from './ui/HelpTooltip';
 
 interface DraftRow {
   xi: string;
   fi: string;
-  classStart: string;
-  classEnd: string;
 }
 
 export function DataTable() {
-  const dataType = useDataStore((state) => state.dataType);
   const rawData = useDataStore((state) => state.rawData);
   const updateDataPoint = useDataStore((state) => state.updateDataPoint);
   const removeDataPoint = useDataStore((state) => state.removeDataPoint);
   const [draftRows, setDraftRows] = useState<DraftRow[]>([]);
 
   useEffect(() => {
-    setDraftRows(rawData.map((point) => ({ xi: formatInput(point.xi), fi: formatInput(point.fi), classStart: formatInput(point.classStart), classEnd: formatInput(point.classEnd) })));
+    setDraftRows(rawData.map((point) => ({ xi: formatInput(point.xi), fi: formatInput(point.fi) })));
   }, [rawData]);
 
   const updateDraft = (index: number, key: keyof DraftRow, value: string) => {
@@ -29,17 +25,8 @@ export function DataTable() {
   };
 
   const commitDraft = (index: number) => {
-    const nextFi = parseNumber(draftRows[index]?.fi ?? '');
-    if (dataType === 'grouped') {
-      const classStart = parseNumber(draftRows[index]?.classStart ?? '');
-      const classEnd = parseNumber(draftRows[index]?.classEnd ?? '');
-      if (classStart !== null && classEnd !== null && classEnd > classStart && nextFi !== null && nextFi > 0) {
-        updateDataPoint(index, { classStart, classEnd, xi: (classStart + classEnd) / 2, fi: nextFi });
-      }
-      return;
-    }
-
     const nextXi = parseNumber(draftRows[index]?.xi ?? '');
+    const nextFi = parseNumber(draftRows[index]?.fi ?? '');
     if (nextXi !== null && nextFi !== null && nextFi > 0) {
       updateDataPoint(index, { xi: nextXi, fi: nextFi });
     }
@@ -57,7 +44,7 @@ export function DataTable() {
       <div className="mb-3 flex items-center justify-between text-sm font-semibold text-teal-50">
         <span className="flex items-center gap-2">
           <Database className="size-4" /> Data Input
-          <HelpTooltip title="Data Input" tourStep={5}>
+          <HelpTooltip title="Data Input" tourStep={4}>
             Daftar ini berisi data yang sudah masuk. Ubah nilai langsung di kotak input, lalu tekan Enter atau klik area lain untuk menyimpan.
           </HelpTooltip>
         </span>
@@ -69,40 +56,18 @@ export function DataTable() {
           <p className="rounded-xl bg-white/10 px-4 py-5 text-center text-sm text-teal-50/70">Belum ada data yang diinput.</p>
         ) : (
           <>
-            <div className={dataType === 'grouped' ? 'grid grid-cols-[1fr_1fr_0.8fr_0.7fr_32px] gap-2 px-2 text-[10px] font-bold uppercase text-teal-50/70' : 'grid grid-cols-[1fr_0.7fr_32px] gap-2 px-2 text-[10px] font-bold uppercase text-teal-50/70'}>
-              {dataType === 'grouped' ? (
-                <>
-                  <span>Batas Bawah</span>
-                  <span>Batas Atas</span>
-                  <span>xi</span>
-                  <span>fi</span>
-                  <span />
-                </>
-              ) : (
-                <>
-                  <span>xi</span>
-                  <span>fi</span>
-                  <span />
-                </>
-              )}
+            <div className="grid grid-cols-[1fr_0.7fr_32px] gap-2 px-2 text-[10px] font-bold uppercase text-teal-50/70">
+              <span>xi</span>
+              <span>fi</span>
+              <span />
             </div>
-            {rawData.map((point, index) =>
-              dataType === 'grouped' ? (
-                <div key={index} className="grid grid-cols-[1fr_1fr_0.8fr_0.7fr_32px] items-center gap-2 rounded-xl bg-white/10 p-2">
-                  <EditableCell value={draftRows[index]?.classStart ?? ''} onChange={(value) => updateDraft(index, 'classStart', value)} onBlur={() => commitDraft(index)} onKeyDown={(event) => commitOnEnter(event, index)} label={`Batas bawah baris ${index + 1}`} />
-                  <EditableCell value={draftRows[index]?.classEnd ?? ''} onChange={(value) => updateDraft(index, 'classEnd', value)} onBlur={() => commitDraft(index)} onKeyDown={(event) => commitOnEnter(event, index)} label={`Batas atas baris ${index + 1}`} />
-                  <span className="min-w-0 rounded-lg bg-teal-950/35 px-2 py-2 text-center text-xs font-bold text-teal-50">{formatUserInput(point.xi)}</span>
-                  <EditableCell value={draftRows[index]?.fi ?? ''} onChange={(value) => updateDraft(index, 'fi', value)} onBlur={() => commitDraft(index)} onKeyDown={(event) => commitOnEnter(event, index)} label={`Frekuensi fi baris ${index + 1}`} />
-                  <DeleteButton onClick={() => removeDataPoint(index)} />
-                </div>
-              ) : (
-                <div key={index} className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_32px] items-center gap-2 rounded-xl bg-white/10 p-2">
-                  <EditableCell value={draftRows[index]?.xi ?? ''} onChange={(value) => updateDraft(index, 'xi', value)} onBlur={() => commitDraft(index)} onKeyDown={(event) => commitOnEnter(event, index)} label={`Nilai xi baris ${index + 1}`} />
-                  <EditableCell value={draftRows[index]?.fi ?? ''} onChange={(value) => updateDraft(index, 'fi', value)} onBlur={() => commitDraft(index)} onKeyDown={(event) => commitOnEnter(event, index)} label={`Frekuensi fi baris ${index + 1}`} />
-                  <DeleteButton onClick={() => removeDataPoint(index)} />
-                </div>
-              ),
-            )}
+            {rawData.map((_, index) => (
+              <div key={index} className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_32px] items-center gap-2 rounded-xl bg-white/10 p-2">
+                <EditableCell value={draftRows[index]?.xi ?? ''} onChange={(value) => updateDraft(index, 'xi', value)} onBlur={() => commitDraft(index)} onKeyDown={(event) => commitOnEnter(event, index)} label={`Nilai xi baris ${index + 1}`} />
+                <EditableCell value={draftRows[index]?.fi ?? ''} onChange={(value) => updateDraft(index, 'fi', value)} onBlur={() => commitDraft(index)} onKeyDown={(event) => commitOnEnter(event, index)} label={`Frekuensi fi baris ${index + 1}`} />
+                <DeleteButton onClick={() => removeDataPoint(index)} />
+              </div>
+            ))}
           </>
         )}
       </div>
@@ -132,7 +97,6 @@ function DeleteButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function formatInput(value: number | undefined): string {
-  if (value === undefined) return '';
+function formatInput(value: number): string {
   return Number.isInteger(value) ? String(value) : String(value).replace('.', ',');
 }

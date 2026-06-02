@@ -1,7 +1,7 @@
+import ExcelJS from 'exceljs';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
 import type { StatResults } from '../types';
 import { toSafeFilename } from './format';
 
@@ -15,7 +15,7 @@ export function exportCsv(results: StatResults, projectName?: string): void {
     row.fiPercent,
     row.FiAbsolute,
     row.FiPercent,
-    row.isExcluded ? '∞' : row.u,
+    row.isExcluded ? 'infinity' : row.u,
     row.uInterpolasi,
     row.isExcluded ? 0 : row.Pu,
     row.isExcluded ? 0 : row.Px,
@@ -25,24 +25,32 @@ export function exportCsv(results: StatResults, projectName?: string): void {
 }
 
 export function exportExcel(results: StatResults, projectName?: string): void {
-  const rows = results.tableRows.map((row) => ({
-    'No.': row.no,
-    Xi: row.xi,
-    fi: row.fi,
-    'fi[%]': row.fiPercent,
-    Fi: row.FiAbsolute,
-    'Fi[%]': row.FiPercent,
-    u: row.isExcluded ? '∞' : row.u,
-    'u Interpolasi': row.uInterpolasi,
-    "P{u'}": row.isExcluded ? 0 : row.Pu,
-    "P{x'}": row.isExcluded ? 0 : row.Px,
-    "f{x'}": row.isExcluded ? 0 : row.fxPrime,
-  }));
-  const worksheet = XLSX.utils.json_to_sheet(rows);
-  worksheet['!cols'] = headers.map(() => ({ wch: 14 }));
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Normalisasi');
-  XLSX.writeFile(workbook, `${toSafeFilename(projectName ?? '')}.xlsx`);
+  void (async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Normalisasi');
+    worksheet.addRow(headers);
+    results.tableRows.forEach((row) => {
+      worksheet.addRow([
+        row.no,
+        row.xi,
+        row.fi,
+        row.fiPercent,
+        row.FiAbsolute,
+        row.FiPercent,
+        row.isExcluded ? 'infinity' : row.u,
+        row.uInterpolasi,
+        row.isExcluded ? 0 : row.Pu,
+        row.isExcluded ? 0 : row.Px,
+        row.isExcluded ? 0 : row.fxPrime,
+      ]);
+    });
+    worksheet.columns.forEach((column) => {
+      column.width = 14;
+    });
+    worksheet.getRow(1).font = { bold: true };
+    const buffer = await workbook.xlsx.writeBuffer();
+    downloadBinaryBlob(buffer, `${toSafeFilename(projectName ?? '')}.xlsx`);
+  })();
 }
 
 export function exportFirstChartPng(projectName?: string): void {
@@ -68,6 +76,15 @@ export async function exportPdf(results: StatResults, root: HTMLElement, project
 
 function downloadBlob(content: string, filename: string, type: string): void {
   const blob = new Blob([content], { type });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+function downloadBinaryBlob(buffer: ExcelJS.Buffer, filename: string): void {
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
   link.download = filename;

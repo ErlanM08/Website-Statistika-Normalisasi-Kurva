@@ -1,28 +1,13 @@
+import ExcelJS from 'exceljs';
 import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
-import type { DataType, RawDataPoint } from '../types';
+import type { RawDataPoint } from '../types';
 import { parseNumber } from './format';
 
-interface ExcelRow {
-  Xi: number;
-  fi: number;
-  'Batas Bawah'?: number;
-  'Batas Atas'?: number;
-  xi?: number;
-}
-
-export function parseCsvFile(file: File, dataType: DataType = 'single'): Promise<RawDataPoint[]> {
+export function parseCsvFile(file: File): Promise<RawDataPoint[]> {
   return new Promise((resolve, reject) => {
     Papa.parse<string[]>(file, {
       complete: (result) => {
         const points = result.data.flatMap((row) => {
-          if (dataType === 'grouped') {
-            const classStart = parseNumber(row[0] ?? '');
-            const classEnd = parseNumber(row[1] ?? '');
-            const fi = parseNumber(row[3] ?? row[2] ?? '');
-            if (classStart === null || classEnd === null || fi === null || classEnd <= classStart) return [];
-            return [{ classStart, classEnd, xi: (classStart + classEnd) / 2, fi }];
-          }
           const xi = parseNumber(row[0] ?? '');
           const fi = parseNumber(row[1] ?? '1');
           return xi !== null && fi !== null ? [{ xi, fi }] : [];
@@ -34,86 +19,72 @@ export function parseCsvFile(file: File, dataType: DataType = 'single'): Promise
   });
 }
 
-export function parseExcelFile(file: File, dataType: DataType = 'single'): Promise<RawDataPoint[]> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const data = new Uint8Array(event.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet) as ExcelRow[];
+export async function parseExcelFile(file: File): Promise<RawDataPoint[]> {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(await file.arrayBuffer());
+    const sheet = workbook.worksheets[0];
+    if (!sheet) throw new Error('File Excel tidak berisi sheet');
 
-        if (dataType === 'grouped') {
-          if (!rows[0] || !('Batas Bawah' in rows[0]) || !('Batas Atas' in rows[0]) || !('fi' in rows[0])) {
-            reject(new Error('Format salah: header kolom harus "Batas Bawah", "Batas Atas", "xi", dan "fi"'));
-            return;
-          }
-
-          const points = rows.map((row) => {
-            const classStart = Number(row['Batas Bawah']);
-            const classEnd = Number(row['Batas Atas']);
-            return { classStart, classEnd, xi: (classStart + classEnd) / 2, fi: Number(row.fi) };
-          });
-          if (points.some((point) => !Number.isFinite(point.classStart) || !Number.isFinite(point.classEnd) || point.classEnd <= point.classStart || !Number.isFinite(point.fi))) {
-            reject(new Error('Format salah: batas kelas dan fi harus berisi angka valid'));
-            return;
-          }
-
-          resolve(points);
-          return;
-        }
-
-        if (!rows[0] || !('Xi' in rows[0]) || !('fi' in rows[0])) {
-          reject(new Error('Format salah: header kolom harus "Xi" dan "fi"'));
-          return;
-        }
-
-        const points = rows.map((row) => ({ xi: Number(row.Xi), fi: Number(row.fi) }));
-        if (points.some((point) => !Number.isFinite(point.xi) || !Number.isFinite(point.fi))) {
-          reject(new Error('Format salah: kolom "Xi" dan "fi" harus berisi angka'));
-          return;
-        }
-
-        resolve(points);
-      } catch (error) {
-        reject(error instanceof Error ? error : new Error('File Excel tidak dapat dibaca'));
-      }
-    };
-    reader.onerror = () => reject(new Error('File Excel tidak dapat dibaca'));
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-export function downloadExcelTemplate(dataType: DataType = 'single'): void {
-  if (dataType === 'grouped') {
-    const rows = [['Batas Bawah', 'Batas Atas', 'xi', 'fi'], ...Array.from({ length: 10 }, (_, index) => ['', '', { f: `((A${index + 2}+B${index + 2})/2)` }, ''])];
-    const worksheet = XLSX.utils.aoa_to_sheet(rows);
-    worksheet['!cols'] = [{ wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 14 }];
-    applyHeaderStyle(worksheet, 4);
-    for (let row = 2; row <= 11; row += 1) {
-      const cell = worksheet[`C${row}`];
-      if (cell) cell.s = { fill: { fgColor: { rgb: 'E5E7EB' } }, protection: { locked: true } };
+    const headers = [cellToString(sheet.getRow(1).getCell(1)), cellToString(sheet.getRow(1).getCell(2))];
+    if (headers[0] !== 'Xi' || headers[1] !== 'fi') {
+      throw new Error('Format salah: header kolom harus "Xi" dan "fi"');
     }
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
-    XLSX.writeFile(workbook, 'template-normalisasi-kurva.xlsx');
-    return;
-  }
 
-  const rows = [['Xi', 'fi'], ...Array.from({ length: 10 }, () => ['', ''])];
-  const worksheet = XLSX.utils.aoa_to_sheet(rows);
-  worksheet['!cols'] = [{ wch: 14 }, { wch: 14 }];
-  applyHeaderStyle(worksheet, 2);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
-  XLSX.writeFile(workbook, 'template-normalisasi-kurva.xlsx');
+    const points: RawDataPoint[] = [];
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return;
+      const xiText = cellToString(row.getCell(1));
+      const fiText = cellToString(row.getCell(2));
+      if (!xiText && !fiText) return;
+      const xi = Number(xiText);
+      const fi = Number(fiText);
+      points.push({ xi, fi });
+    });
+
+    if (points.some((point) => !Number.isFinite(point.xi) || !Number.isFinite(point.fi))) {
+      throw new Error('Format salah: kolom "Xi" dan "fi" harus berisi angka');
+    }
+
+    return points;
+  } catch (error) {
+    throw error instanceof Error ? error : new Error('File Excel tidak dapat dibaca');
+  }
 }
 
-function applyHeaderStyle(worksheet: XLSX.WorkSheet, columns: number): void {
-  for (let index = 0; index < columns; index += 1) {
-    const address = XLSX.utils.encode_cell({ r: 0, c: index });
-    const cell = worksheet[address];
-    if (cell) cell.s = { font: { bold: true } };
+export function downloadExcelTemplate(): void {
+  void (async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Template');
+    worksheet.columns = [
+      { header: 'Xi', key: 'xi', width: 14 },
+      { header: 'fi', key: 'fi', width: 14 },
+    ];
+    for (let index = 0; index < 10; index += 1) {
+      worksheet.addRow({ xi: '', fi: '' });
+    }
+    worksheet.getRow(1).font = { bold: true };
+    const buffer = await workbook.xlsx.writeBuffer();
+    downloadBinaryBlob(buffer, 'template-normalisasi-kurva.xlsx');
+  })();
+}
+
+function cellToString(cell: ExcelJS.Cell): string {
+  const value = cell.value;
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') {
+    if ('result' in value) return String(value.result ?? '').trim();
+    if ('text' in value) return String(value.text ?? '').trim();
+    if ('richText' in value) return value.richText.map((item) => item.text).join('').trim();
   }
+  return String(value).trim();
+}
+
+function downloadBinaryBlob(buffer: ExcelJS.Buffer, filename: string): void {
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
 }

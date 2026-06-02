@@ -22,19 +22,14 @@ const tourSteps: TourStep[] = [
     body: 'Mulai dari sini. Isi nama perhitungan agar hasil export CSV, Excel, PNG, PDF, dan session punya identitas yang jelas.',
   },
   {
-    targetId: 'data-type',
-    title: 'Pilih Tipe Data',
-    body: 'Gunakan Data Tunggal untuk pasangan Xi dan fi. Data Kelompok disiapkan untuk data interval atau kelas.',
-  },
-  {
     targetId: 'manual-input',
     title: 'Entri Manual',
-    body: 'Masukkan data sesuai tipe yang dipilih. Untuk Data Kelompok, isi batas bawah, batas atas, dan frekuensi; Xi dihitung otomatis.',
+    body: 'Masukkan pasangan Xi dan fi, lalu tekan Tambah untuk memasukkan data ke daftar.',
   },
   {
     targetId: 'bulk-input',
     title: 'Input Masal dan Upload',
-    body: 'Tempel banyak angka sekaligus, upload CSV/Excel, atau download template Excel dengan header Xi dan fi.',
+    body: 'Tempel banyak data sekaligus, upload CSV/Excel, atau download template Excel dengan header Xi dan fi.',
   },
   {
     targetId: 'voice-input',

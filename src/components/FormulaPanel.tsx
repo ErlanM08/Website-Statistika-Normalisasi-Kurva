@@ -81,7 +81,7 @@ export function FormulaPanel() {
         <>
           <BlockMath math={`F(X') = P(X') \\times \\Delta \\times n`} />
           <FormulaNote>
-            <InlineMath math={`\\Delta`} /> = lebar kelas interval (BA - BB)
+            <InlineMath math={`\\Delta`} /> = selisih antar nilai Xi yang berurutan
           </FormulaNote>
         </>
       ),
@@ -125,9 +125,6 @@ export function FormulaPanel() {
             </p>
           </article>
         ))}
-      </div>
-      <div className="bg-teal-50 p-6 text-sm text-teal-900 dark:bg-teal-900/30 dark:text-teal-50">
-        Tips ahli: baris dengan Fi[%] = 100% otomatis dikeluarkan dari regresi agar nilai infinity tidak merusak model OLS.
       </div>
     </aside>
   );

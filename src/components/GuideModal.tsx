@@ -8,7 +8,7 @@ const guideSections = [
     icon: Keyboard,
     items: [
       'Isi Nama Project agar file export mudah dikenali.',
-      'Pilih Data Tunggal untuk nilai Xi dan frekuensi fi.',
+      'Gunakan Data Tunggal untuk nilai Xi dan frekuensi fi.',
       'Delta dihitung otomatis dari data dan ditampilkan di KPI.',
     ],
   },

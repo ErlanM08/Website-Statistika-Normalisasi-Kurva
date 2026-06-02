@@ -25,7 +25,7 @@ export function TopBar() {
       <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-5 lg:px-10">
         <div className="flex items-center gap-3">
           <Settings className="size-6 text-teal-700 dark:text-teal-100" />
-          <p className="text-lg font-bold text-teal-900 dark:text-teal-100">Normalisasi Kurva Calculator</p>
+          <p className="text-lg font-bold text-teal-900 dark:text-teal-100">Normalisasi Kurva — Data Tunggal</p>
         </div>
         <nav className="flex items-center gap-1">
           {(['compact', 'standard', 'full'] as const).map((mode) => (

@@ -11,7 +11,6 @@ describe('statistics pipeline', () => {
         { xi: 82, fi: 11 },
         { xi: 86, fi: 6 },
       ],
-      'single',
       4,
     );
 
@@ -40,7 +39,6 @@ describe('statistics pipeline', () => {
     const fi = [1, 3, 8, 15, 35, 42, 36, 18, 6, 2];
     const results = computePolmanStats(
       xi.map((value, index) => ({ xi: value, fi: fi[index] })),
-      'single',
       0.001,
     );
 
@@ -63,7 +61,6 @@ describe('statistics pipeline', () => {
     const fi = [3, 6, 9, 6, 3];
     const results = computePolmanStats(
       xi.map((value, index) => ({ xi: value, fi: fi[index] })),
-      'single',
       0.01,
     );
     const totalFxPrime = results.tableRows.reduce((sum, row) => sum + row.fxPrime, 0);
@@ -84,14 +81,13 @@ describe('statistics pipeline', () => {
         { xi: 5.02, fi: 6 },
         { xi: 5.03, fi: 9 },
       ],
-      'single',
     );
 
     expect(results.delta).toBe(0.01);
   });
 
   it('returns zero delta when data has fewer than two distinct rows', () => {
-    const results = computePolmanStats([{ xi: 5.01, fi: 3 }], 'single');
+    const results = computePolmanStats([{ xi: 5.01, fi: 3 }]);
 
     expect(results.delta).toBe(0);
   });
@@ -103,7 +99,6 @@ describe('statistics pipeline', () => {
           { xi: 5.01, fi: 1 },
           { xi: 5.019999999999999, fi: 1 },
         ],
-        'single',
       ),
     ).toBe(0.01);
     expect(
@@ -112,20 +107,7 @@ describe('statistics pipeline', () => {
           { xi: 6.001, fi: 1 },
           { xi: 6.002, fi: 1 },
         ],
-        'single',
       ),
     ).toBe(0.001);
-  });
-
-  it('infers grouped delta from the first interval width', () => {
-    expect(
-      inferDelta(
-        [
-          { classStart: 59.5, classEnd: 60.5, xi: 60, fi: 3 },
-          { classStart: 60.5, classEnd: 61.5, xi: 61, fi: 7 },
-        ],
-        'grouped',
-      ),
-    ).toBe(1);
   });
 });

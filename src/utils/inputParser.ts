@@ -39,23 +39,6 @@ export function parseBulkInput(text: string): RawDataPoint[] {
   return Array.from(map.entries()).map(([xi, fi]) => ({ xi, fi }));
 }
 
-export function parseGroupedBulkInput(text: string): RawDataPoint[] {
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .flatMap((line) => {
-      const [rangePart, frequencyPart] = line.split(':');
-      const [startPart, endPart] = rangePart?.split('-') ?? [];
-      const classStart = parseNumber(startPart?.trim() ?? '');
-      const classEnd = parseNumber(endPart?.trim() ?? '');
-      const fi = parseNumber(frequencyPart?.trim() ?? '');
-
-      if (classStart === null || classEnd === null || fi === null || classEnd <= classStart || fi <= 0) return [];
-      return [{ classStart, classEnd, xi: (classStart + classEnd) / 2, fi }];
-    });
-}
-
 export function parseVoiceNumbers(text: string): RawDataPoint[] {
   const tokens = text.toLowerCase().replace(/[.,]/g, ' ').split(/\s+/).filter(Boolean);
   const values: number[] = [];

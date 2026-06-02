@@ -1,4 +1,4 @@
-import type { DataType, RawDataPoint, RegressionResult, StatResults } from '../types';
+import type { RawDataPoint, RegressionResult, StatResults } from '../types';
 import { inverseNormalCDF, normalPDF } from './normalDistribution';
 
 const CUMULATIVE_EPSILON = 1e-10;
@@ -93,7 +93,7 @@ export function computeRange(data: RawDataPoint[]): number {
   return sorted[sorted.length - 1].xi - sorted[0].xi;
 }
 
-export function computePolmanStats(data: RawDataPoint[], type: DataType, delta = 0): StatResults {
+export function computePolmanStats(data: RawDataPoint[], delta = 0): StatResults {
   const sorted = sortData(data);
   const n = sorted.reduce((sum, point) => sum + point.fi, 0);
   const relFreq = computeRelativeFreq(sorted);
@@ -107,8 +107,7 @@ export function computePolmanStats(data: RawDataPoint[], type: DataType, delta =
   const stdEmpiris = computeStdEmpiris(sorted, meanEmpiris);
   const stdTeoritik =
     regression.m === 0 ? computeStdTeoritik(meanTeoritik, xi, u) : Math.abs(meanTeoritik - (-1 - regression.b) / regression.m);
-  const effectiveDelta = delta > 0 ? delta : inferDelta(sorted, type);
-  console.log('effectiveDelta:', effectiveDelta);
+  const effectiveDelta = delta > 0 ? delta : inferDelta(sorted);
   const tableRows = sorted.map((point, index) => {
     const isExcluded = u[index] === Number.POSITIVE_INFINITY || cumFreq[index] === 100;
     const uInterpolasi = regression.m * point.xi + regression.b;
@@ -160,16 +159,8 @@ function computeCumulativeAbsoluteFreq(data: RawDataPoint[]): number[] {
   });
 }
 
-export function inferDelta(data: RawDataPoint[], _type: DataType): number {
+export function inferDelta(data: RawDataPoint[]): number {
   const sorted = sortData(data);
-  if (_type === 'grouped') {
-    const firstInterval = sorted.find((point) => point.classStart !== undefined && point.classEnd !== undefined);
-    if (firstInterval?.classStart !== undefined && firstInterval.classEnd !== undefined) {
-      const width = firstInterval.classEnd - firstInterval.classStart;
-      if (width > 0) return roundDelta(width);
-    }
-    return 0;
-  }
   if (sorted.length < 2) return 0;
   const gaps = sorted.slice(1).map((point, index) => Math.abs(point.xi - sorted[index].xi));
   const positiveGaps = gaps.filter((gap) => gap > 0);

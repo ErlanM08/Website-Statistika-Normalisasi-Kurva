@@ -1,11 +1,9 @@
 import { create } from 'zustand';
-import type { ChartSettings, DataType, GroupedInterval, LayerControls, RawDataPoint, SessionData, StatResults, ViewMode } from '../types';
+import type { ChartSettings, LayerControls, RawDataPoint, SessionData, StatResults, ViewMode } from '../types';
 import { computePolmanStats, inferDelta } from '../utils/statistics';
 
 export interface DataStore {
-  dataType: DataType;
   rawData: RawDataPoint[];
-  groupedData: GroupedInterval[];
   delta: number;
   results: StatResults | null;
   sessionName: string;
@@ -19,13 +17,14 @@ export interface DataStore {
   chartSettings: ChartSettings;
   isDarkMode: boolean;
   isAnalyzing: boolean;
-  setDataType: (type: DataType) => void;
   setSessionName: (name: string) => void;
   addDataPoint: (point: RawDataPoint) => void;
   addManyDataPoints: (points: RawDataPoint[]) => void;
+  replaceDataPoints: (points: RawDataPoint[]) => void;
   updateDataPoint: (index: number, point: RawDataPoint) => void;
   removeDataPoint: (index: number) => void;
   clearData: () => void;
+  clearResults: () => void;
   analyze: () => void;
   setViewMode: (mode: ViewMode) => void;
   toggleTable: () => void;
@@ -71,10 +70,8 @@ const initialDark = typeof localStorage !== 'undefined' && localStorage.getItem(
 const initialRawData: RawDataPoint[] = [];
 
 export const useDataStore = create<DataStore>((set, get) => ({
-  dataType: 'single',
   rawData: initialRawData,
-  groupedData: [],
-  delta: inferDelta(initialRawData, 'single'),
+  delta: inferDelta(initialRawData),
   results: null,
   sessionName: 'Sesi Normalisasi Kurva',
   viewMode: 'standard',
@@ -88,12 +85,6 @@ export const useDataStore = create<DataStore>((set, get) => ({
   isDarkMode: initialDark,
   isAnalyzing: false,
 
-  setDataType: (type) =>
-    set((state) => ({
-      dataType: type,
-      delta: inferDelta(state.rawData, type),
-      results: null,
-    })),
   setSessionName: (name) => set({ sessionName: name }),
   addDataPoint: (point) => {
     if (point.fi <= 0) return;
@@ -101,7 +92,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
       const rawData = mergePoints([...state.rawData, point]);
       return {
         rawData,
-        delta: inferDelta(rawData, state.dataType),
+        delta: inferDelta(rawData),
         results: null,
       };
     });
@@ -112,9 +103,17 @@ export const useDataStore = create<DataStore>((set, get) => ({
       const rawData = mergePoints([...state.rawData, ...validPoints]);
       return {
         rawData,
-        delta: inferDelta(rawData, state.dataType),
+        delta: inferDelta(rawData),
         results: null,
       };
+    });
+  },
+  replaceDataPoints: (points) => {
+    const rawData = mergePoints(points.filter((point) => point.fi > 0));
+    set({
+      rawData,
+      delta: inferDelta(rawData),
+      results: null,
     });
   },
   updateDataPoint: (index, point) =>
@@ -122,7 +121,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
       const rawData = mergePoints(state.rawData.map((item, itemIndex) => (itemIndex === index ? point : item)));
       return {
         rawData,
-        delta: inferDelta(rawData, state.dataType),
+        delta: inferDelta(rawData),
         results: null,
       };
     }),
@@ -131,24 +130,23 @@ export const useDataStore = create<DataStore>((set, get) => ({
       const rawData = state.rawData.filter((_, itemIndex) => itemIndex !== index);
       return {
         rawData,
-        delta: inferDelta(rawData, state.dataType),
+        delta: inferDelta(rawData),
         results: null,
       };
     }),
   clearData: () =>
-    set((state) => ({
+    set({
       rawData: [],
-      groupedData: [],
-      delta: inferDelta([], state.dataType),
+      delta: inferDelta([]),
       results: null,
-    })),
+    }),
+  clearResults: () => set({ results: null }),
   analyze: () => {
     const state = get();
-    const { rawData, dataType } = state;
+    const { rawData } = state;
     if (rawData.length === 0) return;
     set({ isAnalyzing: true });
-    console.log('Delta dikirim ke computePolmanStats:', state.delta);
-    const results = computePolmanStats(rawData, dataType, 0);
+    const results = computePolmanStats(rawData, 0);
     set({ results, delta: results.delta, isAnalyzing: false });
   },
   setViewMode: (mode) => set({ viewMode: mode }),
@@ -172,10 +170,8 @@ export const useDataStore = create<DataStore>((set, get) => ({
   },
   loadSession: (session) =>
     set({
-      dataType: session.dataType,
       rawData: session.rawData,
-      groupedData: session.groupedData,
-      delta: session.results?.delta ?? inferDelta(session.rawData, session.dataType),
+      delta: session.results?.delta ?? inferDelta(session.rawData),
       results: session.results,
       sessionName: session.sessionName,
       chartSettings: session.chartSettings ?? defaultChartSettings,
@@ -186,9 +182,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
     return {
       version: '2.0.0',
       sessionName: state.sessionName,
-      dataType: state.dataType,
       rawData: state.rawData,
-      groupedData: state.groupedData,
       delta: state.delta,
       results: state.results,
       chartSettings: state.chartSettings,
@@ -201,7 +195,7 @@ export const useDataStore = create<DataStore>((set, get) => ({
 function mergePoints(points: RawDataPoint[]): RawDataPoint[] {
   const map = new Map<string, RawDataPoint>();
   points.forEach((point) => {
-    const key = point.classStart !== undefined && point.classEnd !== undefined ? `${point.classStart}:${point.classEnd}` : `xi:${point.xi}`;
+    const key = `xi:${point.xi}`;
     const current = map.get(key);
     map.set(key, current ? { ...current, fi: current.fi + point.fi } : point);
   });

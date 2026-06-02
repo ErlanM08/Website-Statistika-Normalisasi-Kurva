@@ -1,51 +1,31 @@
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, useRef, useState } from 'react';
 import { Download, FileUp, Keyboard, Mic, MicOff, Plus, Upload } from 'lucide-react';
 import { useDataStore } from '../store/useDataStore';
-import type { DataType, RawDataPoint } from '../types';
-import { parseBulkInput, parseGroupedBulkInput, parseVoiceNumbers } from '../utils/inputParser';
+import type { RawDataPoint } from '../types';
+import { parseBulkInput } from '../utils/inputParser';
 import { parseNumber } from '../utils/format';
-import { formatUserInput } from '../utils/formatters';
 import { useSpeechInput } from '../hooks/useSpeechInput';
 import { Button } from './ui/Button';
 import { HelpTooltip } from './ui/HelpTooltip';
 
+interface VoiceBuffer {
+  xi: string | null;
+  fi: string | null;
+}
+
 export function DataInputPanel() {
-  const { addDataPoint, addManyDataPoints, dataType } = useDataStore();
+  const { addDataPoint, addManyDataPoints } = useDataStore();
   const [xi, setXi] = useState('');
-  const [classStart, setClassStart] = useState('');
-  const [classEnd, setClassEnd] = useState('');
   const [fi, setFi] = useState('1');
   const [bulk, setBulk] = useState('');
   const [error, setError] = useState('');
+  const [voiceWarning, setVoiceWarning] = useState('');
+  const [voiceSuccess, setVoiceSuccess] = useState('');
+  const [voiceBuffer, setVoiceBuffer] = useState<VoiceBuffer>({ xi: null, fi: null });
+  const toastTimeout = useRef<number | null>(null);
   const speech = useSpeechInput();
 
-  const parsedClassStart = parseNumber(classStart);
-  const parsedClassEnd = parseNumber(classEnd);
-  const groupedPreviewXi = parsedClassStart !== null && parsedClassEnd !== null && parsedClassEnd > parsedClassStart ? (parsedClassStart + parsedClassEnd) / 2 : null;
-
   const addManual = () => {
-    if (dataType === 'grouped') {
-      const parsedFi = parseNumber(fi);
-      if (parsedClassStart === null || parsedClassEnd === null || parsedFi === null || parsedFi < 0) {
-        setError('Masukkan batas kelas dan frekuensi yang valid.');
-        return;
-      }
-      if (parsedClassEnd <= parsedClassStart) {
-        setError('Batas Atas harus lebih besar dari Batas Bawah.');
-        return;
-      }
-      if (parsedFi === 0) {
-        setError('Frekuensi 0 dilewati.');
-        return;
-      }
-      addDataPoint({ classStart: parsedClassStart, classEnd: parsedClassEnd, xi: (parsedClassStart + parsedClassEnd) / 2, fi: parsedFi });
-      setClassStart('');
-      setClassEnd('');
-      setFi('1');
-      setError('');
-      return;
-    }
-
     const parsedXi = parseNumber(xi);
     const parsedFi = parseNumber(fi);
     if (parsedXi === null || parsedFi === null || parsedFi < 0) {
@@ -63,7 +43,7 @@ export function DataInputPanel() {
   };
 
   const addBulk = () => {
-    const parsed = dataType === 'grouped' ? parseGroupedBulkInput(bulk) : parseBulkInput(bulk);
+    const parsed = parseBulkInput(bulk);
     if (parsed.length === 0) {
       setError('Input masal belum berisi angka valid.');
       return;
@@ -73,10 +53,59 @@ export function DataInputPanel() {
     setError('');
   };
 
-  const addVoice = () => {
-    const parsed = parseVoiceNumbers(speech.transcript);
-    if (parsed.length > 0) addManyDataPoints(parsed);
+  const showVoiceSuccess = (message: string, autoDismiss = false) => {
+    if (toastTimeout.current) window.clearTimeout(toastTimeout.current);
+    setVoiceSuccess(message);
+    if (autoDismiss) {
+      toastTimeout.current = window.setTimeout(() => setVoiceSuccess(''), 2000);
+    }
   };
+
+  const applyVoiceValue = (targetField: 'xi' | 'fi') => {
+    const transcriptText = speech.transcript;
+    const parsedValue = parseIndonesianSpeechNumber(transcriptText);
+    console.log('Transcript:', transcriptText);
+    console.log('Parsed value:', parsedValue);
+    console.log('Target field:', targetField === 'xi' ? 'Xi' : 'fi');
+
+    if (parsedValue === null) {
+      setVoiceWarning('⚠ Tidak dapat mengenali angka. Ucapkan ulang.');
+      setVoiceSuccess('');
+      return;
+    }
+
+    if (targetField === 'xi') {
+      setVoiceBuffer({ xi: parsedValue, fi: null });
+      setVoiceWarning('');
+      showVoiceSuccess(`Xi: ${parsedValue} ✓ — sekarang rekam Fi`);
+      setError('');
+      speech.setTranscript('');
+      return;
+    }
+
+    if (!voiceBuffer.xi) {
+      setVoiceWarning('Rekam Xi terlebih dahulu sebelum Fi');
+      setVoiceSuccess('');
+      return;
+    }
+
+    const fiValue = Math.trunc(Number(parsedValue));
+    if (fiValue <= 0) {
+      setVoiceWarning('Fi harus lebih besar dari 0.');
+      setVoiceSuccess('');
+      return;
+    }
+
+    addDataPoint({ xi: Number(voiceBuffer.xi), fi: fiValue });
+    setVoiceBuffer({ xi: null, fi: null });
+    setVoiceWarning('');
+    showVoiceSuccess(`✓ Data Xi=${voiceBuffer.xi}, fi=${fiValue} berhasil ditambahkan!`, true);
+    setError('');
+    speech.setTranscript('');
+  };
+
+  const useVoiceAsXi = () => applyVoiceValue('xi');
+  const useVoiceAsFi = () => applyVoiceValue('fi');
 
   return (
     <div className="space-y-4">
@@ -85,32 +114,14 @@ export function DataInputPanel() {
           <h2 className="flex items-center gap-2 font-semibold">
             <Keyboard className="size-5" /> Entri Manual
           </h2>
-          <HelpTooltip title="Entri Manual" tourStep={2}>
-            {dataType === 'grouped' ? 'Masukkan batas bawah, batas atas, dan frekuensi. Nilai Xi dihitung otomatis sebagai titik tengah kelas.' : 'Masukkan satu pasangan data. Kolom pertama untuk nilai Xi, kolom kedua untuk frekuensi fi, lalu tekan Tambah.'}
+          <HelpTooltip title="Entri Manual" tourStep={1}>
+            Masukkan satu pasangan data. Kolom pertama untuk nilai Xi, kolom kedua untuk frekuensi fi, lalu tekan Tambah.
           </HelpTooltip>
         </div>
-        {dataType === 'grouped' ? (
-          <>
-            <div className="mb-1 grid grid-cols-3 gap-2 px-1 text-[10px] font-bold uppercase text-teal-50/70">
-              <span>Batas Bawah</span>
-              <span>Batas Atas</span>
-              <span>Frekuensi</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <input className="field border-white/20 bg-white/10 text-white placeholder:text-teal-100/60" value={classStart} onChange={(event) => setClassStart(event.target.value)} placeholder="59.5" inputMode="decimal" aria-label="Batas Bawah" />
-              <input className="field border-white/20 bg-white/10 text-white placeholder:text-teal-100/60" value={classEnd} onChange={(event) => setClassEnd(event.target.value)} placeholder="60.5" inputMode="decimal" aria-label="Batas Atas" />
-              <input className="field border-white/20 bg-white/10 text-white placeholder:text-teal-100/60" value={fi} onChange={(event) => setFi(event.target.value)} placeholder="3" inputMode="decimal" aria-label="Frekuensi" />
-            </div>
-            <p className="mt-2 rounded-xl bg-teal-950/30 px-3 py-2 text-xs font-semibold text-teal-50/85">
-              xi = {groupedPreviewXi === null ? '--' : formatUserInput(groupedPreviewXi)}
-            </p>
-          </>
-        ) : (
-          <div className="grid grid-cols-2 gap-2">
-            <input className="field border-white/20 bg-white/10 text-white placeholder:text-teal-100/60" value={xi} onChange={(event) => setXi(event.target.value)} placeholder="Nilai xi" inputMode="decimal" />
-            <input className="field border-white/20 bg-white/10 text-white placeholder:text-teal-100/60" value={fi} onChange={(event) => setFi(event.target.value)} placeholder="Frekuensi fi" inputMode="decimal" />
-          </div>
-        )}
+        <div className="grid grid-cols-2 gap-2">
+          <input className="field border-white/20 bg-white/10 text-white placeholder:text-teal-100/60" value={xi} onChange={(event) => setXi(event.target.value)} placeholder="Nilai xi" inputMode="decimal" />
+          <input className="field border-white/20 bg-white/10 text-white placeholder:text-teal-100/60" value={fi} onChange={(event) => setFi(event.target.value)} placeholder="Frekuensi fi" inputMode="decimal" />
+        </div>
         <Button className="mt-3 w-full" icon={<Plus className="size-4" />} onClick={addManual}>
           Tambah
         </Button>
@@ -121,22 +132,22 @@ export function DataInputPanel() {
           <h2 className="flex items-center gap-2 font-semibold">
             <Upload className="size-5" /> Input Masal
           </h2>
-          <HelpTooltip title="Input Masal" tourStep={3}>
-            {dataType === 'grouped' ? 'Gunakan format batasBawah-batasAtas:frekuensi per baris. Nilai Xi dihitung otomatis dari titik tengah.' : 'Tempel daftar angka mentah, satu angka per baris, atau format xi,fi per baris.'}
+          <HelpTooltip title="Input Masal" tourStep={2}>
+            Tempel daftar angka mentah, satu angka per baris, atau format xi,fi per baris.
           </HelpTooltip>
         </div>
-        <textarea className="field min-h-24 w-full border-white/20 bg-white/10 text-white placeholder:text-teal-100/60" value={bulk} onChange={(event) => setBulk(event.target.value)} placeholder={dataType === 'grouped' ? 'Format: batasBawah-batasAtas:frekuensi\nContoh:\n59.5-60.5:3\n60.5-61.5:7\n61.5-62.5:12' : '56, 76, 45, 33 atau satu angka per baris'} />
+        <textarea className="field min-h-24 w-full border-white/20 bg-white/10 text-white placeholder:text-teal-100/60" value={bulk} onChange={(event) => setBulk(event.target.value)} placeholder="56, 76, 45, 33 atau satu angka per baris" />
         <div className="mt-3 flex gap-2">
           <Button className="flex-1 border-white/50 text-white hover:bg-white/10 dark:text-white" variant="secondary" onClick={addBulk}>
             Proses
           </Button>
-          <FileUpload dataType={dataType} onError={setError} onLoaded={addManyDataPoints} />
+          <FileUpload onError={setError} onLoaded={addManyDataPoints} />
         </div>
         <Button
           className="mt-3 w-full border-white/50 text-white hover:bg-white/10 dark:text-white"
           variant="secondary"
           icon={<Download className="size-4" />}
-          onClick={() => import('../utils/csvParser').then((module) => module.downloadExcelTemplate(dataType))}
+          onClick={() => import('../utils/csvParser').then((module) => module.downloadExcelTemplate())}
         >
           Download Template Excel
         </Button>
@@ -147,11 +158,15 @@ export function DataInputPanel() {
           <h2 className="flex items-center gap-2 font-semibold">
             {speech.isListening ? <MicOff className="size-5 text-red-300" /> : <Mic className="size-5 text-red-300" />} Logika Suara
           </h2>
-          <HelpTooltip title="Logika Suara" tourStep={4}>
-            Rekam angka dengan bahasa Indonesia. Setelah transkripsi muncul, tekan Pakai untuk memasukkan data ke daftar.
+          <HelpTooltip title="Logika Suara" tourStep={3}>
+            Rekam Xi lalu Fi. Setelah Fi dipakai, data langsung masuk ke daftar Data Input.
           </HelpTooltip>
         </div>
-        {!speech.isSupported ? <p className="text-sm text-teal-100/80">Browser ini belum mendukung input suara.</p> : <VoiceControls {...speech} addVoice={addVoice} />}
+        {!speech.isSupported ? (
+          <p className="text-sm text-teal-100/80">Browser ini belum mendukung input suara.</p>
+        ) : (
+          <VoiceControls {...speech} useVoiceAsXi={useVoiceAsXi} useVoiceAsFi={useVoiceAsFi} voiceWarning={voiceWarning} voiceSuccess={voiceSuccess} voiceBuffer={voiceBuffer} />
+        )}
       </section>
 
       {error ? <p className="rounded-xl bg-red-500/20 p-3 text-sm text-red-50">{error}</p> : null}
@@ -159,7 +174,7 @@ export function DataInputPanel() {
   );
 }
 
-function FileUpload({ dataType, onLoaded, onError }: { dataType: DataType; onLoaded: (points: RawDataPoint[]) => void; onError: (message: string) => void }) {
+function FileUpload({ onLoaded, onError }: { onLoaded: (points: RawDataPoint[]) => void; onError: (message: string) => void }) {
   const onChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -174,7 +189,7 @@ function FileUpload({ dataType, onLoaded, onError }: { dataType: DataType; onLoa
     import('../utils/csvParser')
       .then((module) => {
         const parser = extension === 'csv' ? module.parseCsvFile : module.parseExcelFile;
-        return parser(file, dataType);
+        return parser(file);
       })
       .then((points) => {
         if (points.length === 0) {
@@ -197,18 +212,164 @@ function FileUpload({ dataType, onLoaded, onError }: { dataType: DataType; onLoa
   );
 }
 
-function VoiceControls(props: ReturnType<typeof useSpeechInput> & { addVoice: () => void }) {
+function VoiceControls(props: ReturnType<typeof useSpeechInput> & { useVoiceAsXi: () => void; useVoiceAsFi: () => void; voiceWarning: string; voiceSuccess: string; voiceBuffer: VoiceBuffer }) {
+  const toggleListening = () => {
+    if (props.isListening) {
+      props.stop();
+      return;
+    }
+    props.setTranscript('');
+    props.start();
+  };
+
   return (
     <>
       <div className="rounded-xl bg-teal-950/50 p-3 text-sm italic text-teal-50/80">{props.transcript || 'Mendengarkan transkripsi angka Indonesia...'}</div>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <Button className="border-white/50 text-white hover:bg-white/10 dark:text-white" variant="secondary" onClick={props.isListening ? props.stop : props.start}>
+      <div className="mt-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-teal-50/85">
+        Xi: {props.voiceBuffer.xi ? `${props.voiceBuffer.xi} ✓` : 'menunggu...'} <span className="px-1 text-teal-50/50">|</span> Fi: {props.voiceBuffer.xi ? 'menunggu...' : '—'}
+      </div>
+      {props.voiceWarning ? <p className="mt-2 rounded-lg bg-red-500/20 px-3 py-2 text-sm font-semibold text-red-50">{props.voiceWarning}</p> : null}
+      {props.voiceSuccess ? <p className="mt-2 rounded-lg bg-emerald-400/20 px-3 py-2 text-sm font-semibold text-emerald-50">{props.voiceSuccess}</p> : null}
+      <div className="mt-3 grid gap-2">
+        <Button className="border-white/50 text-white hover:bg-white/10 dark:text-white" variant="secondary" onClick={toggleListening}>
           {props.isListening ? 'Berhenti' : 'Rekam'}
         </Button>
-        <Button onClick={props.addVoice} disabled={!props.transcript}>
-          Pakai
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button onClick={props.useVoiceAsXi} disabled={!props.transcript}>
+            Pakai sebagai Xi
+          </Button>
+          <Button onClick={props.useVoiceAsFi} disabled={!props.transcript}>
+            Pakai sebagai Fi
+          </Button>
+        </div>
       </div>
     </>
   );
 }
+
+function parseIndonesianSpeechNumber(text: string): string | null {
+  if (!text) return null;
+  let result = text.toLowerCase().trim();
+  if (!result) return null;
+
+  if (/^[\d.,]+$/.test(result)) {
+    result = result.replace(/,/g, '.');
+    console.log('Raw transcript:', text);
+    console.log('After parsing:', result);
+    const numericValue = parseFloat(result);
+    return Number.isNaN(numericValue) ? null : String(numericValue);
+  }
+
+  const [integerText, decimalText] = result.split(/\bkoma\b|\btitik\b/).map((part) => part.trim());
+  const integerValue = parseIndonesianInteger(integerText);
+  if (integerValue === null) {
+    console.log('Raw transcript:', text);
+    console.log('After parsing:', result);
+    return null;
+  }
+
+  if (decimalText) {
+    const decimalDigits = parseIndonesianDecimalDigits(decimalText);
+    if (decimalDigits === null) {
+      console.log('Raw transcript:', text);
+      console.log('After parsing:', result);
+      return null;
+    }
+    result = `${integerValue}.${decimalDigits}`;
+  } else {
+    result = String(integerValue);
+  }
+
+  console.log('Raw transcript:', text);
+  console.log('After parsing:', result);
+  const numericValue = parseFloat(result);
+  return Number.isNaN(numericValue) ? null : String(numericValue);
+}
+
+function parseIndonesianInteger(text: string): number | null {
+  if (/^\d+$/.test(text)) return Number(text);
+  const tokens = text.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return null;
+
+  let total = 0;
+  let index = 0;
+  while (index < tokens.length) {
+    const token = tokens[index];
+    const direct = digitWordMap[token];
+    if (direct !== undefined) {
+      if (tokens[index + 1] === 'ratus') {
+        total += direct * 100;
+        index += 2;
+        continue;
+      }
+      if (tokens[index + 1] === 'puluh') {
+        total += direct * 10;
+        index += 2;
+        continue;
+      }
+      if (tokens[index + 1] === 'belas') {
+        total += 10 + direct;
+        index += 2;
+        continue;
+      }
+      total += direct;
+      index += 1;
+      continue;
+    }
+    if (token === 'sepuluh') {
+      total += 10;
+      index += 1;
+      continue;
+    }
+    if (token === 'sebelas') {
+      total += 11;
+      index += 1;
+      continue;
+    }
+    if (token === 'seratus') {
+      total += 100;
+      index += 1;
+      continue;
+    }
+    if (token === 'seribu') {
+      total += 1000;
+      index += 1;
+      continue;
+    }
+    if (/^\d+$/.test(token)) {
+      total += Number(token);
+      index += 1;
+      continue;
+    }
+    return null;
+  }
+
+  return total;
+}
+
+function parseIndonesianDecimalDigits(text: string): string | null {
+  if (/^\d+$/.test(text)) return text;
+  const digits = text
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token) => {
+      if (/^\d$/.test(token)) return token;
+      const digit = digitWordMap[token];
+      return digit === undefined ? null : String(digit);
+    });
+
+  return digits.every((digit): digit is string => digit !== null) ? digits.join('') : null;
+}
+
+const digitWordMap: Record<string, number> = {
+  nol: 0,
+  satu: 1,
+  dua: 2,
+  tiga: 3,
+  empat: 4,
+  lima: 5,
+  enam: 6,
+  tujuh: 7,
+  delapan: 8,
+  sembilan: 9,
+};

@@ -1,14 +1,11 @@
 import { Gauge, Play, RotateCcw } from 'lucide-react';
 import { useDataStore } from '../store/useDataStore';
-import { cn } from '../utils/cn';
 import { DataInputPanel } from './DataInputPanel';
 import { DataTable } from './DataTable';
 import { Button } from './ui/Button';
 import { HelpTooltip } from './ui/HelpTooltip';
 
 export function Sidebar() {
-  const dataType = useDataStore((state) => state.dataType);
-  const setDataType = useDataStore((state) => state.setDataType);
   const sessionName = useDataStore((state) => state.sessionName);
   const setSessionName = useDataStore((state) => state.setSessionName);
   const analyze = useDataStore((state) => state.analyze);
@@ -42,14 +39,6 @@ export function Sidebar() {
           placeholder="Contoh: Dimensi Produk Juli 2026"
         />
       </label>
-
-      <div className="mb-4 grid grid-cols-2 rounded-xl bg-white/10 p-1" data-tour-id="data-type">
-        {(['single', 'grouped'] as const).map((type) => (
-          <button key={type} className={cn('rounded-lg px-3 py-3 text-sm font-bold transition', dataType === type ? 'bg-teal-500 text-teal-950' : 'text-white/90 hover:bg-white/10')} onClick={() => setDataType(type)}>
-            {type === 'single' ? 'Data Tunggal' : 'Data Kelompok'}
-          </button>
-        ))}
-      </div>
 
       {warning ? <p className="mb-3 rounded-xl bg-amber-300/20 p-3 text-sm text-amber-50">Minimal 3 data untuk analisis valid.</p> : null}
 
