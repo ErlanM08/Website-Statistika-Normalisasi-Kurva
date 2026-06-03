@@ -5,6 +5,7 @@ import '../charts/chartSetup';
 import type { LayerControls, TableRow } from '../../types';
 import { formatCalculated, formatIntegerInput, formatUserInput } from '../../utils/formatters';
 import { useDataStore } from '../../store/useDataStore';
+import { createValueLabelPlugin } from '../charts/valueLabelPlugin';
 
 interface Point {
   x: number;
@@ -55,7 +56,7 @@ function FrequencyDistributionChartComponent({ tableRows, n, layerControls }: Fr
         <p className="text-sm text-slate-500 dark:text-slate-400">Distribusi dan akumulasi frekuensi data</p>
       </div>
       <div className="h-[calc(100%-56px)]">
-        <Line data={{ datasets }} options={buildOptions(tableRows, n, chartSettings.xAxisLabel, chartSettings.yAxisLabel)} />
+        <Line data={{ datasets }} options={buildOptions(tableRows, n, chartSettings.xAxisLabel, chartSettings.yAxisLabel)} plugins={layerControls.showBarLabels ? [frequencyDistributionValueLabelPlugin] : []} />
       </div>
     </div>
   );
@@ -110,3 +111,5 @@ function buildOptions(tableRows: TableRow[], n: number, xAxisLabel: string, yAxi
 }
 
 export const FrequencyDistributionChart = memo(FrequencyDistributionChartComponent);
+
+const frequencyDistributionValueLabelPlugin = createValueLabelPlugin<'line'>((value) => formatIntegerInput(value));

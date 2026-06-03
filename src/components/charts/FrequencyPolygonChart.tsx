@@ -4,6 +4,7 @@ import type { ChartData, ChartOptions } from 'chart.js';
 import './chartSetup';
 import { useDataStore } from '../../store/useDataStore';
 import { formatCalculated, formatIntegerInput, formatUserInput } from '../../utils/formatters';
+import { createValueLabelPlugin } from './valueLabelPlugin';
 
 interface Point {
   x: number;
@@ -45,7 +46,7 @@ function FrequencyPolygonChartComponent() {
   addMeanLine(datasets, results.meanTeoritik, maxY, 'Rata-Rata Teoritik', chartSettings.meanTeoritikColor, layers.showMeanTeoritikLine);
   addMeanLine(datasets, results.meanEmpiris, maxY, 'Rata-Rata Sample', chartSettings.meanEmpirisColor, layers.showMeanEmpirisLine);
 
-  return <Line data={{ datasets }} options={options('Poligon Frekuensi', chartSettings.xAxisLabel, chartSettings.yAxisLabel)} />;
+  return <Line data={{ datasets }} options={options('Poligon Frekuensi', chartSettings.xAxisLabel, chartSettings.yAxisLabel)} plugins={layers.showBarLabels ? [frequencyValueLabelPlugin] : []} />;
 }
 
 const options = (title: string, xAxisLabel: string, yAxisLabel: string): ChartOptions<'line'> => ({
@@ -79,5 +80,10 @@ function addMeanLine(datasets: ChartData<'line', Point[]>['datasets'], x: number
 function EmptyChart({ title }: { title: string }) {
   return <div className="grid h-full place-items-center rounded-xl border border-dashed border-slate-300 text-sm text-slate-500">{title}</div>;
 }
+
+const frequencyValueLabelPlugin = createValueLabelPlugin<'line'>((value, datasetLabel) => {
+  if (datasetLabel.includes('Rata-Rata')) return '';
+  return datasetLabel.includes("f{x'}") ? formatCalculated(value) : formatIntegerInput(value);
+});
 
 export const FrequencyPolygonChart = memo(FrequencyPolygonChartComponent);

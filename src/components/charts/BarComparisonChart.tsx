@@ -4,10 +4,12 @@ import type { ChartOptions } from 'chart.js';
 import './chartSetup';
 import { useDataStore } from '../../store/useDataStore';
 import { formatCalculated, formatIntegerInput, formatUserInput } from '../../utils/formatters';
+import { createValueLabelPlugin } from './valueLabelPlugin';
 
 function BarComparisonChartComponent() {
   const results = useDataStore((state) => state.results);
   const chartSettings = useDataStore((state) => state.chartSettings);
+  const showValueLabels = useDataStore((state) => state.layerControls.showBarLabels);
   if (!results) return null;
   const labels = results.tableRows.map((row) => formatUserInput(row.xi));
 
@@ -21,6 +23,7 @@ function BarComparisonChartComponent() {
         ],
       }}
       options={buildOptions(chartSettings.xAxisLabel, chartSettings.yAxisLabel)}
+      plugins={showValueLabels ? [barValueLabelPlugin] : []}
     />
   );
 }
@@ -45,3 +48,5 @@ const buildOptions = (xAxisLabel: string, yAxisLabel: string): ChartOptions<'bar
 });
 
 export const BarComparisonChart = memo(BarComparisonChartComponent);
+
+const barValueLabelPlugin = createValueLabelPlugin<'bar'>((value, datasetLabel) => (datasetLabel.includes("f{x'}") ? formatCalculated(value) : formatIntegerInput(value)));

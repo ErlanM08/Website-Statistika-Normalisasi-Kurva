@@ -5,6 +5,7 @@ import './chartSetup';
 import { useDataStore } from '../../store/useDataStore';
 import { cumulativeNormalFromDataPoint } from '../../utils/normalDistribution';
 import { formatCalculated, formatUserInput } from '../../utils/formatters';
+import { createValueLabelPlugin } from './valueLabelPlugin';
 
 interface Point {
   x: number;
@@ -13,7 +14,7 @@ interface Point {
 
 function CumulativePolygonChartComponent() {
   const results = useDataStore((state) => state.results);
-  const show = useDataStore((state) => state.layerControls.showCumulativePolygon);
+  const layers = useDataStore((state) => state.layerControls);
   const chartSettings = useDataStore((state) => state.chartSettings);
   if (!results) return null;
   const rows = results.tableRows;
@@ -27,7 +28,7 @@ function CumulativePolygonChartComponent() {
     },
   ];
 
-  if (show) {
+  if (layers.showCumulativePolygon) {
     datasets.push({
       label: 'Fi[%] teoritis',
       data: rows.map((row) => ({ x: row.xi, y: cumulativeNormalFromDataPoint(row.xi, results.meanTeoritik, results.stdTeoritik) })),
@@ -37,7 +38,7 @@ function CumulativePolygonChartComponent() {
     });
   }
 
-  return <Line data={{ datasets }} options={buildOptions(chartSettings.xAxisLabel, chartSettings.yAxisLabel)} />;
+  return <Line data={{ datasets }} options={buildOptions(chartSettings.xAxisLabel, chartSettings.yAxisLabel)} plugins={layers.showBarLabels ? [cumulativeValueLabelPlugin] : []} />;
 }
 
 const buildOptions = (xAxisLabel: string, yAxisLabel: string): ChartOptions<'line'> => ({
@@ -60,3 +61,5 @@ const buildOptions = (xAxisLabel: string, yAxisLabel: string): ChartOptions<'lin
 });
 
 export const CumulativePolygonChart = memo(CumulativePolygonChartComponent);
+
+const cumulativeValueLabelPlugin = createValueLabelPlugin<'line'>((value) => `${formatCalculated(value)}%`);
