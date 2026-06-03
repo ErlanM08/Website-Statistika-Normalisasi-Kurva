@@ -1,11 +1,11 @@
 import { memo } from 'react';
 import { Line } from 'react-chartjs-2';
-import type { ChartData, ChartOptions } from 'chart.js';
+import type { ChartData, ChartOptions, Plugin } from 'chart.js';
 import '../charts/chartSetup';
 import type { LayerControls, TableRow } from '../../types';
 import { formatCalculated, formatIntegerInput, formatUserInput } from '../../utils/formatters';
 import { useDataStore } from '../../store/useDataStore';
-import { createValueLabelPlugin } from '../charts/valueLabelPlugin';
+import { valueLabelPlugin, type ValueLabelFormatter } from '../charts/valueLabelPlugin';
 
 interface Point {
   x: number;
@@ -56,18 +56,19 @@ function FrequencyDistributionChartComponent({ tableRows, n, layerControls }: Fr
         <p className="text-sm text-slate-500 dark:text-slate-400">Distribusi dan akumulasi frekuensi data</p>
       </div>
       <div className="h-[calc(100%-56px)]">
-        <Line data={{ datasets }} options={buildOptions(tableRows, n, chartSettings.xAxisLabel, chartSettings.yAxisLabel)} plugins={layerControls.showBarLabels ? [frequencyDistributionValueLabelPlugin] : []} />
+        <Line data={{ datasets }} options={buildOptions(tableRows, n, chartSettings.xAxisLabel, chartSettings.yAxisLabel, layerControls.showBarLabels)} plugins={[valueLabelPlugin as Plugin<'line'>]} />
       </div>
     </div>
   );
 }
 
-function buildOptions(tableRows: TableRow[], n: number, xAxisLabel: string, yAxisLabel: string): ChartOptions<'line'> {
+function buildOptions(tableRows: TableRow[], n: number, xAxisLabel: string, yAxisLabel: string, showValueLabels: boolean): ChartOptions<'line'> {
   return {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: 'index', intersect: false },
     plugins: {
+      valueLabels: { enabled: showValueLabels, formatter: frequencyDistributionValueLabelFormatter },
       legend: {
         position: 'top',
         align: 'center',
@@ -112,4 +113,4 @@ function buildOptions(tableRows: TableRow[], n: number, xAxisLabel: string, yAxi
 
 export const FrequencyDistributionChart = memo(FrequencyDistributionChartComponent);
 
-const frequencyDistributionValueLabelPlugin = createValueLabelPlugin<'line'>((value) => formatIntegerInput(value));
+const frequencyDistributionValueLabelFormatter: ValueLabelFormatter = (value) => formatIntegerInput(value);

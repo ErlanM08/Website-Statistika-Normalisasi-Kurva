@@ -1,10 +1,10 @@
 import { memo } from 'react';
 import { Bar } from 'react-chartjs-2';
-import type { ChartOptions } from 'chart.js';
+import type { ChartOptions, Plugin } from 'chart.js';
 import './chartSetup';
 import { useDataStore } from '../../store/useDataStore';
 import { formatCalculated, formatIntegerInput, formatUserInput } from '../../utils/formatters';
-import { createValueLabelPlugin } from './valueLabelPlugin';
+import { valueLabelPlugin, type ValueLabelFormatter } from './valueLabelPlugin';
 
 function BarComparisonChartComponent() {
   const results = useDataStore((state) => state.results);
@@ -22,16 +22,17 @@ function BarComparisonChartComponent() {
           { label: "f{x'} teoritis", data: results.tableRows.map((row) => row.fxPrime), backgroundColor: `${chartSettings.theoreticalColor}cc` },
         ],
       }}
-      options={buildOptions(chartSettings.xAxisLabel, chartSettings.yAxisLabel)}
-      plugins={showValueLabels ? [barValueLabelPlugin] : []}
+      options={buildOptions(chartSettings.xAxisLabel, chartSettings.yAxisLabel, showValueLabels)}
+      plugins={[valueLabelPlugin as Plugin<'bar'>]}
     />
   );
 }
 
-const buildOptions = (xAxisLabel: string, yAxisLabel: string): ChartOptions<'bar'> => ({
+const buildOptions = (xAxisLabel: string, yAxisLabel: string, showValueLabels: boolean): ChartOptions<'bar'> => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
+    valueLabels: { enabled: showValueLabels, formatter: barValueLabelFormatter },
     legend: { position: 'bottom' },
     title: { display: true, text: 'Perbandingan fi dan f{x\'}' },
     tooltip: {
@@ -49,4 +50,4 @@ const buildOptions = (xAxisLabel: string, yAxisLabel: string): ChartOptions<'bar
 
 export const BarComparisonChart = memo(BarComparisonChartComponent);
 
-const barValueLabelPlugin = createValueLabelPlugin<'bar'>((value, datasetLabel) => (datasetLabel.includes("f{x'}") ? formatCalculated(value) : formatIntegerInput(value)));
+const barValueLabelFormatter: ValueLabelFormatter = (value, datasetLabel) => (datasetLabel.includes("f{x'}") ? formatCalculated(value) : formatIntegerInput(value));

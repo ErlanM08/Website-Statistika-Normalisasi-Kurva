@@ -1,11 +1,11 @@
 import { memo } from 'react';
 import { Line } from 'react-chartjs-2';
-import type { ChartData, ChartOptions } from 'chart.js';
+import type { ChartData, ChartOptions, Plugin } from 'chart.js';
 import './chartSetup';
 import { useDataStore } from '../../store/useDataStore';
 import { cumulativeNormalFromDataPoint } from '../../utils/normalDistribution';
 import { formatCalculated, formatUserInput } from '../../utils/formatters';
-import { createValueLabelPlugin } from './valueLabelPlugin';
+import { valueLabelPlugin, type ValueLabelFormatter } from './valueLabelPlugin';
 
 interface Point {
   x: number;
@@ -38,13 +38,14 @@ function CumulativePolygonChartComponent() {
     });
   }
 
-  return <Line data={{ datasets }} options={buildOptions(chartSettings.xAxisLabel, chartSettings.yAxisLabel)} plugins={layers.showBarLabels ? [cumulativeValueLabelPlugin] : []} />;
+  return <Line data={{ datasets }} options={buildOptions(chartSettings.xAxisLabel, chartSettings.yAxisLabel, layers.showBarLabels)} plugins={[valueLabelPlugin as Plugin<'line'>]} />;
 }
 
-const buildOptions = (xAxisLabel: string, yAxisLabel: string): ChartOptions<'line'> => ({
+const buildOptions = (xAxisLabel: string, yAxisLabel: string, showValueLabels: boolean): ChartOptions<'line'> => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
+    valueLabels: { enabled: showValueLabels, formatter: cumulativeValueLabelFormatter },
     legend: { position: 'bottom' },
     title: { display: true, text: 'Poligon Frekuensi Kumulatif' },
     tooltip: {
@@ -62,4 +63,4 @@ const buildOptions = (xAxisLabel: string, yAxisLabel: string): ChartOptions<'lin
 
 export const CumulativePolygonChart = memo(CumulativePolygonChartComponent);
 
-const cumulativeValueLabelPlugin = createValueLabelPlugin<'line'>((value) => `${formatCalculated(value)}%`);
+const cumulativeValueLabelFormatter: ValueLabelFormatter = (value) => `${formatCalculated(value)}%`;
