@@ -109,11 +109,11 @@ export function computePolmanStats(data: RawDataPoint[], delta = 0): StatResults
     regression.m === 0 ? computeStdTeoritik(meanTeoritik, xi, u) : Math.abs(meanTeoritik - (-1 - regression.b) / regression.m);
   const effectiveDelta = delta > 0 ? delta : inferDelta(sorted);
   const tableRows = sorted.map((point, index) => {
-    const isExcluded = u[index] === Number.POSITIVE_INFINITY || cumFreq[index] === 100;
+    const isUInfinite = !Number.isFinite(u[index]);
     const uInterpolasi = regression.m * point.xi + regression.b;
-    const Pu = isExcluded ? 0 : normalPDF(uInterpolasi);
-    const Px = isExcluded ? 0 : computePx(Pu, stdTeoritik);
-    const fxPrime = isExcluded ? 0 : computeFxPrime(Px, effectiveDelta, n);
+    const Pu = normalPDF(uInterpolasi);
+    const Px = computePx(Pu, stdTeoritik);
+    const fxPrime = computeFxPrime(Px, effectiveDelta, n);
 
     return {
       no: index + 1,
@@ -127,7 +127,7 @@ export function computePolmanStats(data: RawDataPoint[], delta = 0): StatResults
       Pu,
       Px,
       fxPrime,
-      isExcluded,
+      isExcluded: isUInfinite,
     };
   });
 

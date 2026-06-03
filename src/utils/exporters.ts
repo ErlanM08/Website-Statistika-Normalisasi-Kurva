@@ -17,9 +17,9 @@ export function exportCsv(results: StatResults, projectName?: string): void {
     row.FiPercent,
     row.isExcluded ? 'infinity' : row.u,
     row.uInterpolasi,
-    row.isExcluded ? 0 : row.Pu,
-    row.isExcluded ? 0 : row.Px,
-    row.isExcluded ? 0 : row.fxPrime,
+    row.Pu,
+    row.Px,
+    row.fxPrime,
   ]);
   downloadBlob(Papa.unparse([headers, ...rows]), `${toSafeFilename(projectName ?? '')}.csv`, 'text/csv;charset=utf-8');
 }
@@ -39,9 +39,9 @@ export function exportExcel(results: StatResults, projectName?: string): void {
         row.FiPercent,
         row.isExcluded ? 'infinity' : row.u,
         row.uInterpolasi,
-        row.isExcluded ? 0 : row.Pu,
-        row.isExcluded ? 0 : row.Px,
-        row.isExcluded ? 0 : row.fxPrime,
+        row.Pu,
+        row.Px,
+        row.fxPrime,
       ]);
     });
     worksheet.columns.forEach((column) => {

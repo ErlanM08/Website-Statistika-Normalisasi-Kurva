@@ -64,9 +64,9 @@ export function TableDetail() {
                   <td className="px-4 py-3">{formatCalculated(row.FiPercent)}</td>
                   <td className="px-4 py-3">{row.isExcluded ? '∞' : formatCalculated(row.u)}</td>
                   <td className="px-4 py-3">{formatCalculated(row.uInterpolasi)}</td>
-                  <td className="px-4 py-3">{row.isExcluded ? '0' : formatCalculated(row.Pu)}</td>
-                  <td className="px-4 py-3">{row.isExcluded ? '0' : formatCalculated(row.Px)}</td>
-                  <td className="px-4 py-3 font-semibold text-teal-700 dark:text-teal-100">{row.isExcluded ? '0' : formatCalculated(row.fxPrime)}</td>
+                  <td className="px-4 py-3">{formatCalculated(row.Pu)}</td>
+                  <td className="px-4 py-3">{formatCalculated(row.Px)}</td>
+                  <td className="px-4 py-3 font-semibold text-teal-700 dark:text-teal-100">{formatCalculated(row.fxPrime)}</td>
                 </tr>
               )) ?? (
                 <tr>

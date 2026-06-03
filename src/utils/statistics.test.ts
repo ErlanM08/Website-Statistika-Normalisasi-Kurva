@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { computeOLSRegression, computePolmanStats, inferDelta, inverseCDFInterpolate } from './statistics';
 
 describe('statistics pipeline', () => {
-  it('computes a complete Polman table and excludes cumulative 100 percent row', () => {
+  it('computes a complete Polman table and keeps theoretical values for cumulative 100 percent row', () => {
     const results = computePolmanStats(
       [
         { xi: 70, fi: 3 },
@@ -18,7 +18,7 @@ describe('statistics pipeline', () => {
     expect(results.tableRows).toHaveLength(5);
     expect(results.tableRows[4].FiAbsolute).toBe(50);
     expect(results.tableRows[4].isExcluded).toBe(true);
-    expect(results.tableRows[4].fxPrime).toBe(0);
+    expect(results.tableRows[4].fxPrime).toBeGreaterThan(0);
     expect(results.stdTeoritik).toBeGreaterThan(0);
   });
 
@@ -34,7 +34,7 @@ describe('statistics pipeline', () => {
     expect(regression.b).toBeCloseTo(0, 8);
   });
 
-  it('matches the Polman sample behavior for final excluded row', () => {
+  it('matches the Polman sample behavior for final infinite-u row', () => {
     const xi = [6.001, 6.002, 6.003, 6.004, 6.005, 6.006, 6.007, 6.008, 6.009, 6.01];
     const fi = [1, 3, 8, 15, 35, 42, 36, 18, 6, 2];
     const results = computePolmanStats(
@@ -51,9 +51,11 @@ describe('statistics pipeline', () => {
     expect(results.tableRows[4].fxPrime).toBeLessThan(41);
     expect(results.tableRows[9].u).toBe(Number.POSITIVE_INFINITY);
     expect(results.tableRows[9].isExcluded).toBe(true);
-    expect(results.tableRows[9].Pu).toBe(0);
-    expect(results.tableRows[9].Px).toBe(0);
-    expect(results.tableRows[9].fxPrime).toBe(0);
+    expect(results.tableRows[9].uInterpolasi).toBeCloseTo(2.7959, 3);
+    expect(results.tableRows[9].Pu).toBeCloseTo(0.0080, 3);
+    expect(results.tableRows[9].Px).toBeCloseTo(4.8336, 2);
+    expect(results.tableRows[9].fxPrime).toBeCloseTo(0.8024, 3);
+    expect(results.tableRows.reduce((sum, row) => sum + row.fxPrime, 0)).toBeCloseTo(165.6234, 2);
   });
 
   it('uses delta in fxPrime for a compact symmetric dataset', () => {
@@ -69,9 +71,9 @@ describe('statistics pipeline', () => {
     expect(results.tableRows[2].fxPrime).toBeCloseTo(8.115, 0);
     expect(results.tableRows[4].isExcluded).toBe(true);
     expect(results.tableRows[4].FiPercent).toBe(100);
-    expect(results.tableRows[4].fxPrime).toBe(0);
-    expect(totalFxPrime).toBeGreaterThan(24);
-    expect(totalFxPrime).toBeLessThan(25);
+    expect(results.tableRows[4].fxPrime).toBeGreaterThan(0);
+    expect(totalFxPrime).toBeGreaterThan(25);
+    expect(totalFxPrime).toBeLessThan(28);
   });
 
   it('infers delta automatically when no delta is supplied', () => {
