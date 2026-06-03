@@ -17,7 +17,7 @@ export const valueLabelPlugin: Plugin<ChartType> = {
   id: 'valueLabels',
   afterDatasetsDraw(chart) {
     const labelOptions = chart.options.plugins?.valueLabels;
-    if (!labelOptions?.enabled || !labelOptions.formatter) return;
+    if (labelOptions?.enabled !== true || typeof labelOptions.formatter !== 'function') return;
 
     const { ctx } = chart;
 

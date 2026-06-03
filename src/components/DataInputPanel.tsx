@@ -69,7 +69,7 @@ export function DataInputPanel() {
     console.log('Target field:', targetField === 'xi' ? 'Xi' : 'fi');
 
     if (parsedValue === null) {
-      setVoiceWarning('⚠ Tidak dapat mengenali angka. Ucapkan ulang.');
+      setVoiceWarning('Tidak dapat mengenali angka. Ucapkan ulang dengan jelas.');
       setVoiceSuccess('');
       return;
     }
@@ -77,7 +77,7 @@ export function DataInputPanel() {
     if (targetField === 'xi') {
       setVoiceBuffer({ xi: parsedValue, fi: null });
       setVoiceWarning('');
-      showVoiceSuccess(`Xi: ${parsedValue} ✓ — sekarang rekam Fi`);
+      showVoiceSuccess(`Xi: ${parsedValue} berhasil dibaca. Sekarang rekam Fi.`);
       setError('');
       speech.setTranscript('');
       return;
@@ -89,7 +89,7 @@ export function DataInputPanel() {
       return;
     }
 
-    const fiValue = Math.trunc(Number(parsedValue));
+    const fiValue = Math.round(Number(parsedValue));
     if (fiValue <= 0) {
       setVoiceWarning('Fi harus lebih besar dari 0.');
       setVoiceSuccess('');
@@ -99,7 +99,7 @@ export function DataInputPanel() {
     addDataPoint({ xi: Number(voiceBuffer.xi), fi: fiValue });
     setVoiceBuffer({ xi: null, fi: null });
     setVoiceWarning('');
-    showVoiceSuccess(`✓ Data Xi=${voiceBuffer.xi}, fi=${fiValue} berhasil ditambahkan!`, true);
+    showVoiceSuccess(`Data Xi=${voiceBuffer.xi}, fi=${fiValue} berhasil ditambahkan.`, true);
     setError('');
     speech.setTranscript('');
   };
@@ -226,12 +226,12 @@ function VoiceControls(props: ReturnType<typeof useSpeechInput> & { useVoiceAsXi
     <>
       <div className="rounded-xl bg-teal-950/50 p-3 text-sm italic text-teal-50/80">{props.transcript || 'Mendengarkan transkripsi angka Indonesia...'}</div>
       <div className="mt-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-teal-50/85">
-        Xi: {props.voiceBuffer.xi ? `${props.voiceBuffer.xi} ✓` : 'menunggu...'} <span className="px-1 text-teal-50/50">|</span> Fi: {props.voiceBuffer.xi ? 'menunggu...' : '—'}
+        Xi: {props.voiceBuffer.xi ? `${props.voiceBuffer.xi} siap` : 'menunggu...'} <span className="px-1 text-teal-50/50">|</span> Fi: {props.voiceBuffer.xi ? 'menunggu...' : '-'}
       </div>
-      {props.voiceWarning ? <p className="mt-2 rounded-lg bg-red-500/20 px-3 py-2 text-sm font-semibold text-red-50">{props.voiceWarning}</p> : null}
+      {props.voiceWarning || props.error ? <p className="mt-2 rounded-lg bg-red-500/20 px-3 py-2 text-sm font-semibold text-red-50">{props.voiceWarning || props.error}</p> : null}
       {props.voiceSuccess ? <p className="mt-2 rounded-lg bg-emerald-400/20 px-3 py-2 text-sm font-semibold text-emerald-50">{props.voiceSuccess}</p> : null}
       <div className="mt-3 grid gap-2">
-        <Button className="border-white/50 text-white hover:bg-white/10 dark:text-white" variant="secondary" onClick={toggleListening}>
+        <Button className={`border-white/50 text-white hover:bg-white/10 dark:text-white ${props.isListening ? 'animate-pulse border-red-300 bg-red-500/30 shadow-[0_0_0_4px_rgba(248,113,113,0.18)]' : ''}`} variant="secondary" onClick={toggleListening}>
           {props.isListening ? 'Berhenti' : 'Rekam'}
         </Button>
         <div className="grid grid-cols-2 gap-2">
@@ -251,6 +251,9 @@ function parseIndonesianSpeechNumber(text: string): string | null {
   if (!text) return null;
   let result = text.toLowerCase().trim();
   if (!result) return null;
+
+  const directSingleWord = digitWordMap[result];
+  if (directSingleWord !== undefined) return String(directSingleWord);
 
   if (/^[\d.,]+$/.test(result)) {
     result = result.replace(/,/g, '.');
@@ -287,6 +290,9 @@ function parseIndonesianSpeechNumber(text: string): string | null {
 }
 
 function parseIndonesianInteger(text: string): number | null {
+  const directSingleWord = digitWordMap[text.toLowerCase().trim()];
+  if (directSingleWord !== undefined) return directSingleWord;
+
   if (/^\d+$/.test(text)) return Number(text);
   const tokens = text.split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return null;
@@ -355,7 +361,7 @@ function parseIndonesianDecimalDigits(text: string): string | null {
     .map((token) => {
       if (/^\d$/.test(token)) return token;
       const digit = digitWordMap[token];
-      return digit === undefined ? null : String(digit);
+      return digit === undefined || digit > 9 ? null : String(digit);
     });
 
   return digits.every((digit): digit is string => digit !== null) ? digits.join('') : null;
@@ -363,6 +369,7 @@ function parseIndonesianDecimalDigits(text: string): string | null {
 
 const digitWordMap: Record<string, number> = {
   nol: 0,
+  kosong: 0,
   satu: 1,
   dua: 2,
   tiga: 3,
@@ -372,4 +379,22 @@ const digitWordMap: Record<string, number> = {
   tujuh: 7,
   delapan: 8,
   sembilan: 9,
+  sepuluh: 10,
+  sebelas: 11,
+  'dua belas': 12,
+  'tiga belas': 13,
+  'empat belas': 14,
+  'lima belas': 15,
+  'enam belas': 16,
+  'tujuh belas': 17,
+  'delapan belas': 18,
+  'sembilan belas': 19,
+  'dua puluh': 20,
+  'tiga puluh': 30,
+  'empat puluh': 40,
+  'lima puluh': 50,
+  'enam puluh': 60,
+  'tujuh puluh': 70,
+  'delapan puluh': 80,
+  'sembilan puluh': 90,
 };

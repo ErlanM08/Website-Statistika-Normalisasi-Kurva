@@ -64,14 +64,96 @@ export function exportFirstChartPng(projectName?: string): void {
 
 export async function exportPdf(results: StatResults, root: HTMLElement, projectName?: string): Promise<void> {
   const title = projectName?.trim() || 'Laporan Normalisasi Kurva';
-  const image = await html2canvas(root, { scale: 2, backgroundColor: '#f8f9fb' });
-  const pdf = new jsPDF('landscape', 'mm', 'a4');
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const restoreLayout = setTemporaryExportWidth(root);
+  await waitForLayout();
+
   pdf.setFontSize(16);
   pdf.text(title, 14, 14);
   pdf.setFontSize(10);
   pdf.text(`n=${results.n} | delta=${results.delta.toFixed(4)} | R2=${results.regression.rSquared.toFixed(4)}`, 14, 22);
-  pdf.addImage(image.toDataURL('image/png'), 'PNG', 10, 30, 277, 155);
-  pdf.save(`${toSafeFilename(title)}.pdf`);
+
+  try {
+    const sections = Array.from(root.children).filter((child): child is HTMLElement => child instanceof HTMLElement && child.offsetHeight > 0);
+    let cursorY = 30;
+
+    for (const section of sections.length > 0 ? sections : [root]) {
+      const canvas = await html2canvas(section, {
+        scale: 2,
+        useCORS: true,
+        windowWidth: 1200,
+        scrollX: 0,
+        scrollY: 0,
+        backgroundColor: '#f8f9fb',
+      });
+      cursorY = addCanvasToPdf(pdf, canvas, cursorY);
+    }
+
+    pdf.save(`${toSafeFilename(title)}.pdf`);
+  } finally {
+    restoreLayout();
+  }
+}
+
+function setTemporaryExportWidth(element: HTMLElement): () => void {
+  const previousWidth = element.style.width;
+  const previousMinWidth = element.style.minWidth;
+  const previousMaxWidth = element.style.maxWidth;
+
+  element.style.width = '1200px';
+  element.style.minWidth = '1100px';
+  element.style.maxWidth = '1200px';
+
+  return () => {
+    element.style.width = previousWidth;
+    element.style.minWidth = previousMinWidth;
+    element.style.maxWidth = previousMaxWidth;
+  };
+}
+
+function waitForLayout(): Promise<void> {
+  return new Promise((resolve) => {
+    window.requestAnimationFrame(() => resolve());
+  });
+}
+
+function addCanvasToPdf(pdf: jsPDF, canvas: HTMLCanvasElement, startY: number): number {
+  const margin = 10;
+  const gap = 6;
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const contentWidth = pageWidth - margin * 2;
+  let cursorY = startY;
+  let sourceY = 0;
+
+  while (sourceY < canvas.height) {
+    const availableHeight = pageHeight - cursorY - margin;
+    if (availableHeight < 35) {
+      pdf.addPage();
+      cursorY = margin;
+    }
+
+    const pageAvailableHeight = pageHeight - cursorY - margin;
+    const sliceHeight = Math.min(canvas.height - sourceY, Math.floor((pageAvailableHeight * canvas.width) / contentWidth));
+    const pageCanvas = document.createElement('canvas');
+    pageCanvas.width = canvas.width;
+    pageCanvas.height = sliceHeight;
+    const context = pageCanvas.getContext('2d');
+    if (!context) break;
+
+    context.drawImage(canvas, 0, sourceY, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+    const slicePdfHeight = (sliceHeight * contentWidth) / canvas.width;
+    pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', margin, cursorY, contentWidth, slicePdfHeight);
+    sourceY += sliceHeight;
+    cursorY += slicePdfHeight + gap;
+
+    if (sourceY < canvas.height) {
+      pdf.addPage();
+      cursorY = margin;
+    }
+  }
+
+  return cursorY;
 }
 
 function downloadBlob(content: string, filename: string, type: string): void {
